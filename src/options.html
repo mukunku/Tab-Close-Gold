@@ -1,0 +1,40 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="options.css">
+	<link rel="stylesheet" type="text/css" href="lib/examples.css">
+	<link rel="stylesheet" type="text/css" href="lib/slick.grid.css">
+	<title>Ad Close Gold - Options</title>
+</head>
+<body>
+
+<script src="lib/jquery-1.7.min.js"></script>
+<script src="lib/slick.core.js"></script>
+<script src="lib/jquery.event.drag-2.2.js"></script>
+<script src="lib/jquery-ui-1.8.16.custom.min.js"></script>
+<script src="lib/slick.editors.js"></script>
+<script src="lib/slick.formatters.js"></script>
+<script src="lib/slick.grid.js"></script>
+<script src="options.js"></script>
+<script src="lib/lz-string.min.js"></script>
+
+<div id="main" class="center">
+	<div id="header">
+	<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!"/>
+	<span id="title">Ad Close Gold - Options</span>
+	</div>
+	<div id="body">
+	</div>
+	<div id="footer">
+	<input type="button" value="Save Changes" id="saveConfig" style="height: 30px;" class="floatRight" disabled/>
+	</div>
+	<div id="configFooter">
+		<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5">Export will be shown here.
+Import will read from here.</textarea>
+		<input type="button" value="Export Configuration" id="exportConfig" style="height: 30px;" class="floatLeft"/>
+		<input type="button" value="Import Additional Configuration" id="importConfig" style="height: 30px;" class="floatRight"/>
+		<div style="clear:both;" />
+	</div>
+</div>
+
+</body>
+</html>
