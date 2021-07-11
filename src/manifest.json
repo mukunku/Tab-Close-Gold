@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Ad Close Gold",
-  "version": "1.0.1.2",
+  "version": "1.1.0.0",
   "permissions": [
     "tabs",
 	"storage"
   ],
   "options_page": "options.html",
-  "description": "This extension automatically closes tabs matching certain search patterns",
+  "description": "This extension automatically closes tabs based on your blocked url settings",
   "icons": {
     "128": "icon128.png"
   },

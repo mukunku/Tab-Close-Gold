@@ -3,6 +3,8 @@
 	<link rel="stylesheet" type="text/css" href="options.css">
 	<link rel="stylesheet" type="text/css" href="lib/examples.css">
 	<link rel="stylesheet" type="text/css" href="lib/slick.grid.css">
+	<link rel="stylesheet" type="text/css" href="lib/ui-toggle.css">
+	
 	<title>Ad Close Gold - Options</title>
 </head>
 <body>
@@ -15,17 +17,39 @@
 <script src="lib/slick.formatters.js"></script>
 <script src="lib/slick.grid.js"></script>
 <script src="options.js"></script>
-<script src="lib/lz-string.min.js"></script>
+<script src="lib/lz-string.min.js"></script> 
+<script src="lib/jquery.toggler.js"></script>
 
 <div id="main" class="center">
 	<div id="header">
-	<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!"/>
-	<span id="title">Ad Close Gold - Options</span>
+		<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!"/>
+		<span id="title">Ad Close Gold - Options</span>
 	</div>
-	<div id="body">
+	<div class="floatLeft">
+		<b style="font-size: 18px; padding-left: 3px; top: 2px; position: relative;">*</b>
+		<span class="select-none"> = wild card. Example: </span><span>www.face*.com</span>
+	</div>
+	<div class="floatRight">
+		<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
+	</div>
+	<div id="body" style="">
 	</div>
 	<div id="footer">
-	<input type="button" value="Save Changes" id="saveConfig" style="height: 30px;" class="floatRight" disabled/>
+		<div class="floatLeft">
+			<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
+				<!-- Lets hide the storage switcher for now. Maybe we can expose it to users later down the road -->
+				<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
+				<input class="flex-item" type="checkbox" id="storage-radiobutton" name="storage_option" value="LOCAL">
+				<span class="flex-item" id="storage-switch-message"></span>
+			</div>
+			<div class="flex-container" style="margin-top: 5px;">
+				<span>Storage usage: </span>
+				<progress id="storage-usage-progress-bar" value="0" max="100" class="flex-item" style="margin-left: 5px;"></progress>
+				<span id="storage-usage-percentage-text" class="flex-item" style="margin-left: 5px;">0%</span>
+			</div>
+		</div>
+		<input type="button" value="Save Changes" id="saveConfig" style="height: 30px;" class="floatRight" disabled/>
+		<div style="clear:both;" />
 	</div>
 	<div id="configFooter">
 		<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5">Export will be shown here.
@@ -35,6 +59,5 @@ Import will read from here.</textarea>
 		<div style="clear:both;" />
 	</div>
 </div>
-
 </body>
 </html>

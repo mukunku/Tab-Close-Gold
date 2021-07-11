@@ -64,3 +64,31 @@ body {
 .floatRight {
 	float: right;
 }
+
+.r0.slick-cell {
+	background: 0;
+}
+
+div:not(.new-row) > .r0.slick-cell:empty {
+	background-image: url(images/no_tick.png);
+	background-repeat: no-repeat;
+	background-position: top 3px left 31px;
+}
+
+div:not(.new-row) > .r2.slick-cell:empty {
+	background-image: url(images/no_tick.png);
+	background-repeat: no-repeat;
+	background-position: top 3px left 31px;
+}
+
+.flex-container {
+  display: flex;
+}
+
+.flex-item {
+
+}
+
+.select-none {
+  user-select: none;
+}

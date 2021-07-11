@@ -12,7 +12,7 @@ $(function() {
 			cssClass: "centerText"
 		}, 
 		{
-			name: "URL Search Pattern (No wild cards, sorry)",
+			name: "URL Search Pattern",
 			field: "pattern",
 			id: "pattern",
 			sortable: true,
@@ -82,6 +82,8 @@ $(function() {
 		}
 	];
 	
+	var MAX_PARTITION_COUNT = chrome.storage.sync.MAX_ITEMS - 10; //-10 is to reserve some item capacity for settings.
+	
 	var options = {
 		enableCellNavigation: true,
 		enableColumnReorder: false,
@@ -91,41 +93,70 @@ $(function() {
 		autoEdit: false
 	};
 	
+	//Check where data is stored and load it
 	var rows = [];
 	var slickgrid = {};
 	chrome.storage.sync.get({
-		'config': [{
-			enabled: true,
-			pattern: "ducksarethebest.com",
-			isRegex: false,
-			hitCount: 0,
-			lastHit: ''
-		}],
-		isCompressed: false
+		'useCloudStorage': true //All users will be using cloud storage by default
 	}, function(item) {
 		if (!chrome.runtime.lastError) {
-			var isCompressed = false;
-			if (item && item.isCompressed)
-				isCompressed = true;
+			var useCloudStorage = !!(item && item.useCloudStorage);
+			$('#storage-radiobutton').prop('checked', useCloudStorage).checkToggler({
+			  labelOn: "Cloud",
+			  labelOff: "Local"
+			});
+			updateStorageUsageProgressBar();
 			
-			if (item && item.config) {
-				if (isCompressed) {
-					rows = JSON.parse(LZString.decompressFromUTF16(item.config));
+			var callback = function(item) {
+				if (!chrome.runtime.lastError) {					
+					//check if the data is partitioned (for cloud storage)
+					var isPartitionedData = !!(item['config-2']);
+					
+					if (isPartitionedData) {
+						var isDone = false;
+						var i = 1;
+						rows = [];
+						while(!isDone) {
+							var partition = item['config-' + i.toString()];
+							i++;
+							if (partition) {
+								rows = rows.concat(JSON.parse(LZString.decompressFromUTF16(partition)));
+							} else {
+								isDone = true;
+							}
+						}
+					} else if (item['config-1'] || item['config']) { //TODO: Remove old 'config' key after some time
+						//Single row of data detected (Usually means we're using Local storage)
+						rows = JSON.parse(LZString.decompressFromUTF16(item['config-1'] || item['config']));
+					} else {
+						//no items exist. use default demo data
+						rows = [{
+							enabled: true,
+							pattern: "findtheinvisiblecow.com",
+							isRegex: false,
+							hitCount: 0,
+							lastHit: ''
+						}]
+					}
+					
+					populateGrid("#body", rows || [], columns, options);
 				} else {
-					rows = item.config;
+					console.log(chrome.runtime.error);
 				}
 			}
-
-			if (!rows)
-				rows = [];
-			loadGrid("#body", rows, columns, options);
+			
+			if (useCloudStorage)
+				chrome.storage.sync.get(null, callback);
+			else 
+				chrome.storage.local.get(null, callback);
+			
 		} else {
 			console.log(chrome.runtime.error);
 		}
 	});
-	
-	function loadGrid(selector, rows, columns, options) {
-		slickgrid = new Slick.Grid("#body", rows, columns, options);
+		
+	function populateGrid(selector, rows, columns, gridOptions) {
+		slickgrid = new Slick.Grid("#body", rows, columns, gridOptions);
 	
 		slickgrid.onClick.subscribe(function(e, args){
 			try
@@ -139,13 +170,13 @@ $(function() {
 					args.grid.getData().splice(args.row, 1);
 					slickgrid.invalidateAllRows();
 					slickgrid.render();
-					$('#saveConfig').prop('disabled', false);
+					$('#saveConfig').prop('disabled', false).css('background-color', '#1FFF45');
 				} else if (args.grid.getColumns()[args.cell].id === "resethits") {
 					args.grid.getData()[args.row].hitCount = 0;
 					args.grid.getData()[args.row].lastHit = '';
 					slickgrid.invalidateAllRows();
 					slickgrid.render();
-					$('#saveConfig').prop('disabled', false);
+					$('#saveConfig').prop('disabled', false).css('background-color', '#1FFF45');
 				}
 			}
 			catch (err) {
@@ -181,7 +212,7 @@ $(function() {
 			args.grid.updateRowCount();
 			args.grid.render();
 			
-			$('#saveConfig').prop('disabled', false);
+			$('#saveConfig').prop('disabled', false).css('background-color', '#1FFF45');
 		});
 		
 		slickgrid.onCellChange.subscribe(function (e, args) {
@@ -196,20 +227,72 @@ $(function() {
 			if (args.item.pattern)
 				args.item.pattern = args.item.pattern.trim();
 			
-			$('#saveConfig').prop('disabled', false);
+			$('#saveConfig').prop('disabled', false).css('background-color', '#1FFF45');
 		});
 	}
 	
 	$('#saveConfig').click(function() {
-		chrome.storage.sync.set( {'config': LZString.compressToUTF16(JSON.stringify(slickgrid.getData())), 'isCompressed': true}, function() {
-			if (chrome.runtime.lastError) {			
-				console.log(chrome.runtime.error);
-				alert("Could not save configuration!");
-			} else {
-				$('#saveConfig').prop('disabled', true);
-			}
-		});
+		saveSettings();
 	});
+	
+	function saveSettings(suppressErrors, callback) {
+		var useCloudStorage = $('#storage-radiobutton').prop('checked');		
+		var saveFinishedCallback = function() {
+			updateStorageUsageProgressBar(); //no harm in updating regardless of success
+			if (chrome.runtime.lastError) {			
+				if (!suppressErrors) {
+					console.log(chrome.runtime.lastError.message);
+					if (chrome.runtime.lastError.message === "QUOTA_BYTES quota exceeded") {
+						alert("Not enough storage available. Please consider reducing number of url's.");
+					} else {
+						alert("Could not save configuration!");
+					}
+				}
+				
+				if (typeof callback === 'function') {
+					callback(false);
+				}
+			} else {
+				//We always store the 'useCloudStorage' flag in the cloud storage
+				chrome.storage.sync.set({ 'useCloudStorage': useCloudStorage }, function() {
+					if (chrome.runtime.lastError) {
+						if (!suppressErrors) {
+							console.log(chrome.runtime.lastError.message);
+							alert("Could not save configuration!");
+						}
+						
+						if (typeof callback === 'function') {
+							callback(false);
+						}
+					} else {
+						$('#saveConfig').prop('disabled', true).css('background-color', '');
+						if (typeof callback === 'function') {
+							callback(true);
+						}
+					}
+				});
+			}
+		}
+		
+		if (useCloudStorage) {
+			//Cloud storage has strict limits on storage per config item. so we must partition our data.
+			var options = generatePartitionedOptionsForCloudStorage();
+			chrome.storage.sync.set(options, saveFinishedCallback);
+			console.log("Saved to cloud storage");
+			
+			chrome.storage.sync.remove('isCompressed'); //remove deprecated config
+			//chrome.storage.sync.remove('config'); Lets not remove just yet in case something goes wrong and I need to revert...
+		}
+		else {
+			//No 'per-item' storage limitations in local storage so we can just dump it all into one item
+			var options = {'config-1': LZString.compressToUTF16(JSON.stringify(slickgrid.getData()))};
+			chrome.storage.local.set(options, saveFinishedCallback);
+			console.log("Saved to local storage");
+			
+			chrome.storage.sync.remove('isCompressed'); //remove deprecated config
+			//chrome.storage.local.remove('config'); Lets not remove just yet in case something goes wrong and I need to revert...
+		}
+	}
 	
 	$('#exportConfig').click(function() {
 		var output = [];
@@ -268,7 +351,7 @@ $(function() {
 				slickgrid.invalidateAllRows();
 				slickgrid.render();
 				
-				$('#saveConfig').prop('disabled', false);
+				$('#saveConfig').prop('disabled', false).css('background-color', '#1FFF45');
 			} else {
 				alert('Config was not in the correct format. Import failed!');
 			}
@@ -277,5 +360,81 @@ $(function() {
 			alert('Config was not in the correct format. Import failed!');
 		}
 	});
+	
+	$('#storage-radiobutton').change(function() {		
+		var hasPendingChanges = !$('#saveConfig').prop('disabled');
+		if (!hasPendingChanges) {
+			var useCloudStorage = this.checked;
+			
+			saveSettings(true, function(isSuccess) {
+				if (isSuccess) {					
+					$('#storage-switch-message').text('Successfully switched to ' + (useCloudStorage ? 'Cloud' : 'Local') + ' storage.').css('color','green');
+				} else if (useCloudStorage) {
+					$('#storage-switch-message').text('Failed to switch to Cloud storage. You may have too many settings.').css('color','red');
+				} else {
+					$('#storage-switch-message').text('Failed to switch to Local storage. An unexpected error occurred.').css('color','red');
+				}
+			});
+		} else {
+			alert("Please save your changes before switching the storage location");
+			this.checked = !this.checked; //revert the value
+		}
+	});
+	
+	function updateStorageUsageProgressBar() {
+		var useCloudStorage = $('#storage-radiobutton').prop('checked');
+		var storageObject = useCloudStorage ? chrome.storage.sync : chrome.storage.local;	
+		storageObject.getBytesInUse(null, function(bytesUsed) { //null = get all usage
+			var maxBytes = Math.min((storageObject.QUOTA_BYTES_PER_ITEM * MAX_PARTITION_COUNT || storageObject.QUOTA_BYTES), storageObject.QUOTA_BYTES);
+			var percentage = (100 * bytesUsed / maxBytes);
+			var percentageText = (percentage < 0.01 ? 0.01 : percentage).toFixed(2) + '%';
+			$('#storage-usage-progress-bar').prop('max', maxBytes).prop('value', bytesUsed).text(percentageText);
+			$('#storage-usage-percentage-text').text(percentageText);
+		}); 
+	}
+	
+	function generatePartitionedOptionsForCloudStorage() {
+		function splitArrayIntoChunksOfLen(arr, len) {
+			var chunks = [], i = 0, n = arr.length;
+			while (i < n) {
+				chunks.push(arr.slice(i, i += len));
+			}
+			return chunks;
+		};
+			
+		//We split our data into multiple arrays so we can maximize our usage of the cloud storage.		
+		var data = slickgrid.getData();
+		var rowCountPerItem = Math.ceil(data.length / MAX_PARTITION_COUNT);
+		var splitData = splitArrayIntoChunksOfLen(data, rowCountPerItem);
+		
+		var config = {};
+		for (var i = 0; i < MAX_PARTITION_COUNT; i++) {
+			if (i < splitData.length)
+				config['config-' + (i + 1).toString()] = LZString.compressToUTF16(JSON.stringify(splitData[i]));
+			else
+				config['config-' + (i + 1).toString()] = null;
+		}
+		return config;
+	}
+	
+	$('#delete-all-button').click(function() {
+		var promptText = prompt("Warning: all saved settings will be deleted. Type 'delete all' below to confirm deletion:") || '';
+		if (promptText.toLowerCase().replaceAll("'", "") === "delete all") {
+			var useCloudStorage = $('#storage-radiobutton').prop('checked');
+			var callback = function() {
+				if (!chrome.runtime.lastError) {
+					alert("All options cleared");
+				} else {
+					alert("Something went wrong. Please try again.");
+				}
+				location.reload(true);
+			}
+			
+			if (useCloudStorage) {
+				chrome.storage.sync.clear(callback);
+			} else {
+				chrome.storage.local.clear(callback);
+			}
+		}
+	});
 });
-
