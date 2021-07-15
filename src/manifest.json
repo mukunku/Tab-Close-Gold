@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
-  "name": "Ad Close Gold",
-  "version": "1.1.0.0",
+  "name": "Tab Close Gold",
+  "version": "1.2.0.0",
   "permissions": [
     "tabs",
 	"storage"
   ],
   "options_page": "options.html",
-  "description": "This extension automatically closes tabs based on your blocked url settings",
+  "description": "Tired of ads passing by your ad blocker? Want a simple configurable add-on for your browser that will auto close tabs for you? Then look no further!",
   "icons": {
     "128": "icon128.png"
   },
