@@ -7,7 +7,7 @@
 	"storage"
   ],
   "options_page": "options.html",
-  "description": "Tired of ads passing by your ad blocker? Want a simple configurable add-on for your browser that will auto close tabs for you? Then look no further!",
+  "description": "Tired of ads passing by your ad blocker? Want a simple configurable add-on that will auto close tabs for you? Then look no further!",
   "icons": {
     "128": "icon128.png"
   },
