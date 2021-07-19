@@ -1,0 +1,60 @@
+ <!DOCTYPE html>
+<html>
+<head>
+<title>Tab Close Gold - Popup</title>
+<style>
+.menu,
+.sub-menu {
+  margin: 0;
+  padding: 0;
+}
+.sub-menu li {
+    margin: 0;
+}
+
+span,li {
+  display: block;
+}
+
+span {
+  text-decoration: none;
+  color: currentColor;
+  padding: 10px; 
+  user-select: none;
+  cursor: pointer;
+}
+
+span:hover {
+  background-color: #bfbfbf;
+}
+
+li{
+  border-style: solid;
+  border-width: 1px;
+}
+
+li:first-child {
+	border-bottom: 0;
+}
+
+.navigation {
+  line-height: 1;
+}
+body {
+  width: 200px;
+}
+</style>
+</head>
+<body>
+<nav class="navigation">
+  <ul class="menu">
+    <li><span id="blacklist">Blacklist current site</span></li>
+    <li><span id="options">Options</span></li>
+  </ul>
+</nav>
+<!--leave scripts in the body-->
+<script src="lib/jquery-1.7.min.js"></script>
+<script src="lib/lz-string.min.js"></script> 
+<script src="popup.js"></script>
+</body>
+</html> 

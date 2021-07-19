@@ -40,7 +40,7 @@ function inspectUrl (tab, changeInfo) {
 	try 
 	{
 		var useCloudStorage = true; //All users will be using cloud storage by default
-		if (changeInfo && changeInfo.url && changeInfo.url !== 'chrome://newtab/') {
+		if (changeInfo && changeInfo.url && !changeInfo.url.startsWith('chrome-extension:') && !changeInfo.url.startsWith('chrome:') && !changeInfo.url.startsWith('about:blank')) { //with great power comes great responsibility
 			var callback = function(item) {
 				if (!chrome.runtime.lastError) {
 					var configs = [];
@@ -100,10 +100,18 @@ function inspectUrl (tab, changeInfo) {
 								config.hitCount++;
 								
 								var closeTabCallback = function() {
-									chrome.tabs.remove(tab.id, function() {
-										if (chrome.runtime.lastError) {
-											console.log('Something went wrong when closing a tab with pattern: ' + pattern);
+									chrome.tabs.query({windowType:'normal'}, function(tabs) {
+										if (tabs.length === 1) {
+											//If this is the only tab, lets open a blank tab to prevent an infinite loop which can happen in rare cases
+											chrome.tabs.create({ url: "about:blank" });
 										}
+										
+										//Close the tab
+										chrome.tabs.remove(tab.id, function() {
+											if (chrome.runtime.lastError) {
+												console.log('Something went wrong when closing a tab with pattern: ' + pattern);
+											}
+										});
 									});
 								};
 								
@@ -111,9 +119,11 @@ function inspectUrl (tab, changeInfo) {
 									var options = generatePartitionedOptionsForCloudStorage(configs);
 									chrome.storage.sync.set(options, closeTabCallback);
 								} else {
-									var options = {'config-1': LZString.compressToUTF16(JSON.stringify(slickgrid.getData()))};
+									var options = {'config-1': LZString.compressToUTF16(JSON.stringify(configs))};
 									chrome.storage.local.set(options, saveFinishedCallback);
 								}
+								
+								break;
 							}
 						}
 					}

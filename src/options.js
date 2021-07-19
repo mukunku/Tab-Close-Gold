@@ -276,7 +276,7 @@ $(function() {
 		
 		if (useCloudStorage) {
 			//Cloud storage has strict limits on storage per config item. so we must partition our data.
-			var options = generatePartitionedOptionsForCloudStorage();
+			var options = generatePartitionedOptionsForCloudStorage(slickgrid.getData());
 			chrome.storage.sync.set(options, saveFinishedCallback);
 			console.log("Saved to cloud storage");
 			
@@ -393,7 +393,7 @@ $(function() {
 		}); 
 	}
 	
-	function generatePartitionedOptionsForCloudStorage() {
+	function generatePartitionedOptionsForCloudStorage(data) {
 		function splitArrayIntoChunksOfLen(arr, len) {
 			var chunks = [], i = 0, n = arr.length;
 			while (i < n) {
@@ -403,7 +403,6 @@ $(function() {
 		};
 			
 		//We split our data into multiple arrays so we can maximize our usage of the cloud storage.		
-		var data = slickgrid.getData();
 		var rowCountPerItem = Math.ceil(data.length / MAX_PARTITION_COUNT);
 		var splitData = splitArrayIntoChunksOfLen(data, rowCountPerItem);
 		
