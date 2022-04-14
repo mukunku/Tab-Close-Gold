@@ -19,7 +19,7 @@ module.exports = {
   ],
   resolve: {
     alias: {
-        jquery: "slickgrid/node_modules/jquery/src/jquery" //Use slickgrid's jQuery version for now.
+        jquery: "slickgrid/lib/jquery-3.1.0" //Use slickgrid's jQuery version for now.
     }
   }
 };

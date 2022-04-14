@@ -25,7 +25,7 @@ export class CloudStorageApi extends StorageApi {
     }
 
 	public async getStorageUsage(): Promise<StorageUsage> {
-        let bytesUsed = await chrome.storage.local.getBytesInUse(null); //null = get all usage
+        let bytesUsed = await chrome.storage.sync.getBytesInUse(null); //null = get all usage
         return new StorageUsage(bytesUsed, chrome.storage.sync.QUOTA_BYTES_PER_ITEM * CloudStorageApi.MAX_PARTITION_COUNT);
     }
 
