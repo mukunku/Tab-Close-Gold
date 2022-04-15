@@ -176,7 +176,31 @@ export class OptionsJS {
 
         //Populate the slickgrid
         let urlPatterns = await (await StorageApiFactory.getStorageApi()).getSettings();
+
+        //sort by Last Hit On desc
+        urlPatterns.sort((pattern1, pattern2) => { 
+            if (!pattern1 || !pattern2) {
+                return -1;
+            }
+            //For some reason 'lastHitOn' is string in our storage. TODO: Need to investigate but seems to be working
+            let result = pattern2.lastHitOn?.toString().localeCompare(pattern1.lastHitOn?.toString() || '') //lastHitOn desc
+            if (result === null || result === undefined || result === 0) {
+                result = pattern2.hitCount - pattern1.hitCount;//hitCount desc
+                if (result === null || result === undefined || result === 0) {
+                    result = pattern1.pattern.localeCompare(pattern2.pattern); //pattern asc
+                }
+            }
+            return result;
+        });
+
         this.populateGrid("#body", urlPatterns, OptionsJS.columns, OptionsJS.options);
+
+        //Tell slick grid the data is sorted (doesn't actually trigger sort)
+        this.slickgrid?.setSortColumns([
+            { columnId: 'lastHitOn', sortAsc: false}, 
+            { columnId: 'hitCount', sortAsc: false },
+            { columnId: 'pattern', sortAsc: true },
+        ]); //show last hit first
 
         this.attachEvents();
     }
@@ -309,7 +333,6 @@ export class OptionsJS {
 
     private populateGrid(selector: string, rows: Array<any>, columns: Slick.Column<any>[], gridOptions: Slick.GridOptions<any>): void {
 		this.slickgrid = new Slick.Grid(selector, rows, columns, gridOptions);
-	
 		this.slickgrid.onClick.subscribe(async (e, args) => {
 			try
 			{
