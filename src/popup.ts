@@ -27,7 +27,7 @@ export class PopupJS {
 					if (url !== null) { //null => user hit cancel
 						if (url.trim()) {
 							if (url.length > 3) {
-								this.saveNewUrlToStorage(url, currentTab.id!);
+								this.saveNewUrlToStorage(url, currentTab.id!, currentTab.url!);
 								keepRunning = false;
 							} else {
 								alert("Please enter at least 4 characters");
@@ -60,7 +60,7 @@ export class PopupJS {
 		return result;
 	}
 
-    private async saveNewUrlToStorage(url: string, tabId: number): Promise<void> {
+    private async saveNewUrlToStorage(url: string, tabId: number, fullUrl: string): Promise<void> {
         let storageApi = await StorageApiFactory.getStorageApi();
         let configs = await storageApi.getSettings();
 		var alreadyExists = false;
@@ -73,7 +73,12 @@ export class PopupJS {
         }
         
         if (!alreadyExists) {
-            configs.push(new UrlPattern(url, false));
+            let newConfig = new UrlPattern(url, false);
+            newConfig.lastHits.push(fullUrl);
+            newConfig.hitCount = 1;
+            newConfig.lastHitOn = new Date();
+
+            configs.push(newConfig);
             await storageApi.saveSettings(configs);
             let tabs = await chrome.tabs.query({ windowType:'normal' });
             if (tabs.length === 1) {
