@@ -1,5 +1,6 @@
 *.js
 !webpack.config.js
+!publish.js
 
 node_modules
 
@@ -8,3 +9,9 @@ package-lock.json
 .DS_store
 
 *.map
+
+*.zip
+
+*.license.txt
+
+publish
