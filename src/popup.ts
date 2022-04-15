@@ -19,7 +19,7 @@ export class PopupJS {
 					alert("Can't blacklist this page");
 					window.close();
 					return;
-				}
+				} 
 				
 				var keepRunning = true;
 				while (keepRunning) {
@@ -82,11 +82,11 @@ export class PopupJS {
             await storageApi.saveSettings(configs);
             let tabs = await chrome.tabs.query({ windowType:'normal' });
             if (tabs.length === 1) {
-                //If this is the only tab, lets open a blank tab to prevent an infinite loop which can happen in rare cases
-                await chrome.tabs.create({ url: "about:blank" });
+                //If this is the only tab, lets not close the tab in order to prevent an infinite loop which can happen in rare cases
+                await chrome.tabs.update(tabId, { url: "about:blank" })
+            } else {
+                await chrome.tabs.remove(tabId);
             }
-            await chrome.tabs.remove(tabId);
-            window.close(); //close the popup
         } else {
             alert("Url already exists");
         }
