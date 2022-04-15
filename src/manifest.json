@@ -8,7 +8,7 @@
   ],
   "options_page": "./options.html",
   "description": "Tired of ads passing by your ad blocker? Zoom tabs annoying you? Want a simple extension to auto close tabs? Then look no further!",
-  "icons": {
+  "icons": { 
     "128": "icon128.png"
   },
   "author": "mukunku",
