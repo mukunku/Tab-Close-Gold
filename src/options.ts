@@ -38,7 +38,7 @@ export class OptionsJS {
             sortable: true,
             resizable: true,
             cannotTriggerInsert: false,
-            editor: Slick.Editors.LongText
+            editor: Slick.Editors.Text
         }, 
         {
             name: "Delay",
@@ -154,7 +154,7 @@ export class OptionsJS {
         editable: true,
         enableAddRow: true,
         forceFitColumns: true,
-        autoEdit: false
+        autoEdit: true //requires double click to edit if false
     };
 
     private readonly $storageDropdown = $('#storage-dropdown');
