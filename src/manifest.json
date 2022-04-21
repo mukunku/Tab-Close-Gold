@@ -1,27 +1,29 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Tab Close Gold",
-  "version": "1.2.0.0",
+  "version": "2.0.0.0",
   "permissions": [
     "tabs",
-	"storage"
+	  "storage"
   ],
-  "options_page": "options.html",
-  "description": "Tired of ads passing by your ad blocker? Want a simple configurable add-on that will auto close tabs for you? Then look no further!",
-  "icons": {
+  "options_page": "./options.html",
+  "description": "Tired of ads passing by your ad blocker? Zoom tabs annoying you? Want a simple extension to auto close tabs? Then look no further!",
+  "icons": { 
     "128": "icon128.png"
   },
   "author": "mukunku",
   "background": {
-    "persistent": false,
-    "scripts": ["background.js"]
+    "service_worker": "./background.bundle.js",
+    "type": "module"
   },
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
-  "browser_action": {
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "action": {
     "default_icon": {               
       "128": "icon128.png"
     },
     "default_title": "Tab Close Gold",
-    "default_popup": "popup.html"   
+    "default_popup": "./popup.html"   
   }
 }

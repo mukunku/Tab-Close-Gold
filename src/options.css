@@ -1,6 +1,6 @@
 html {
 	font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
-	background-image: url("noise.png");
+	background-image: url("./images/noise.png");
     background-repeat: repeat;
 }
 
@@ -70,25 +70,30 @@ body {
 }
 
 div:not(.new-row) > .r0.slick-cell:empty {
-	background-image: url(images/no_tick.png);
+	background-image: url(./images/no_tick.png);
 	background-repeat: no-repeat;
-	background-position: top 3px left 31px;
+	background-position: top 3px left 20px;
 }
 
-div:not(.new-row) > .r2.slick-cell:empty {
-	background-image: url(images/no_tick.png);
+div:not(.new-row) > .r3.slick-cell:empty {
+	background-image: url(./images/no_tick.png);
 	background-repeat: no-repeat;
-	background-position: top 3px left 31px;
+	background-position: top 3px left 20px;
 }
 
 .flex-container {
   display: flex;
 }
 
-.flex-item {
-
-}
-
 .select-none {
   user-select: none;
+}
+
+.new-row::after {
+	margin-left: 61px;
+	content: 'click to add';
+	font-style: italic;
+	font-size: 8px;
+	line-height: 24px;
+	opacity: 50%;
 }

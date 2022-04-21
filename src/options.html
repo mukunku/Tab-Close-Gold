@@ -3,22 +3,10 @@
 	<link rel="stylesheet" type="text/css" href="options.css">
 	<link rel="stylesheet" type="text/css" href="lib/examples.css">
 	<link rel="stylesheet" type="text/css" href="lib/slick.grid.css">
-	<link rel="stylesheet" type="text/css" href="lib/ui-toggle.css">
-	
+	<script src="options.bundle.js"></script>
 	<title>Tab Close Gold - Options</title>
 </head>
 <body>
-<script src="lib/jquery-1.7.min.js"></script>
-<script src="lib/slick.core.js"></script>
-<script src="lib/jquery.event.drag-2.2.js"></script>
-<script src="lib/jquery-ui-1.8.16.custom.min.js"></script>
-<script src="lib/slick.editors.js"></script>
-<script src="lib/slick.formatters.js"></script>
-<script src="lib/slick.grid.js"></script>
-<script src="options.js"></script>
-<script src="lib/lz-string.min.js"></script> 
-<script src="lib/jquery.toggler.js"></script>
-
 <div id="main" class="center">
 	<div id="header">
 		<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!"/>
@@ -31,14 +19,17 @@
 	<div class="floatRight">
 		<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
 	</div>
-	<div id="body" style="">
+	<div id="body">
 	</div>
 	<div id="footer">
 		<div class="floatLeft">
 			<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
 				<!-- Lets hide the storage switcher for now. Maybe we can expose it to users later down the road -->
 				<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
-				<input class="flex-item" type="checkbox" id="storage-radiobutton" name="storage_option" value="LOCAL">
+				<select id="storage-dropdown" class="flex-item" name="storage_option">
+					<option value="Cloud">Cloud</option>
+					<option value="Local">Local</option>
+				</select>
 				<span class="flex-item" id="storage-switch-message"></span>
 			</div>
 			<div class="flex-container" style="margin-top: 5px;">
@@ -47,7 +38,8 @@
 				<span id="storage-usage-percentage-text" class="flex-item" style="margin-left: 5px;">0%</span>
 			</div>
 		</div>
-		<input type="button" value="Save Changes" id="saveConfig" style="height: 30px;" class="floatRight" disabled/>
+		<!-- Hiding the save button to try instant saving instead -->
+		<!-- <input type="button" value="Save Changes" id="saveConfig" style="height: 30px;" class="floatRight" disabled/> -->
 		<div style="clear:both;" />
 	</div>
 	<div id="configFooter">
