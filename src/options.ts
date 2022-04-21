@@ -380,7 +380,7 @@ export class OptionsJS {
 				} else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
                     let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ? 
                         args.grid.getData()[args.row].delayInMs : 1000;
-                    let delay = prompt(`'Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`, 
+                    let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`, 
                         currentDelay.toString());
                     let delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, parseInt(delay));
                     if (delayInMs >= 0) {
