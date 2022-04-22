@@ -14,7 +14,6 @@ copyFilesByExtension(".css", __dirname, "publish");
 copyFilesByExtension(".png", __dirname, "publish");
 
 fs.cpSync("manifest.json", "publish/manifest.json");
-fs.cpSync("node_modules", "publish/node_modules", { recursive: true });
 fs.cpSync("lib", "publish/lib", { recursive: true });
 fs.cpSync("images", "publish/images", { recursive: true });
 

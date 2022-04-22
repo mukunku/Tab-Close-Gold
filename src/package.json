@@ -2,7 +2,7 @@
   "scripts": {
     "build:watch": "run-p watch:tsc watch:webpack",
     "build": "tsc && npx webpack --mode development",
-    "build:prod": "tsc && npx webpack --mode production",
+    "build:prod": "tsc --noEmit && npx webpack --no-devtool --mode production",
     "watch:tsc": "tsc --watch",
     "watch:webpack": "npx webpack watch --mode development",
     "publish": "npm run build:prod && node publish.js"
