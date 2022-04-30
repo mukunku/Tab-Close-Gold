@@ -4,12 +4,14 @@ import LZString from 'lz-string';
 import { StorageUsage } from "./storage-usage";
 import { ChromeStorageType } from "./chrome-storage-types";
 import { StorageApiFactory } from "./storage-api-factory";
+import * as browser from "webextension-polyfill";
 
 export class CloudStorageApi extends StorageApi {
-    public static readonly MAX_PARTITION_COUNT: number = chrome.storage.sync.MAX_ITEMS - 10; //-10 is to reserve some item capacity for settings.
+	//Firefox doesn't have the MAX_PARTITION_COUNT constant so we need to hard code X(
+    public static readonly MAX_PARTITION_COUNT: number = (browser.storage.sync.MAX_ITEMS || 512) - 10; //-10 is to reserve some item capacity for settings.
 
     public async getSettings(): Promise<UrlPattern[]> {
-        let optionsRaw = await chrome.storage.sync.get(null);
+        let optionsRaw = await browser.storage.sync.get(null);
         return super.parseSettings(optionsRaw);
     }
 
@@ -20,27 +22,28 @@ export class CloudStorageApi extends StorageApi {
         //Cloud storage has strict limits on storage per config item. so we must partition our data.
         let optionsRaw = this.generatePartitionedOptionsForCloudStorage(values);
         
-        await chrome.storage.sync.set(optionsRaw);
-        await chrome.storage.sync.remove('config'); //remove deprecated config (TODO: cleanup later)
+        await browser.storage.sync.set(optionsRaw);
+        await browser.storage.sync.remove('config'); //remove deprecated config (TODO: cleanup later)
     }
 
 	public async getStorageUsage(): Promise<StorageUsage> {
-        let bytesUsed = await chrome.storage.sync.getBytesInUse(null); //null = get all usage
-        return new StorageUsage(bytesUsed, chrome.storage.sync.QUOTA_BYTES_PER_ITEM * CloudStorageApi.MAX_PARTITION_COUNT);
+        let bytesUsed = await browser.storage.sync.getBytesInUse(null); //null = get all usage
+        return new StorageUsage(bytesUsed, ( //Firefox doesn't have the QUOTA_BYTES_PER_ITEM constant so we need to hard code X(
+			browser.storage.sync.QUOTA_BYTES_PER_ITEM || 8192) * CloudStorageApi.MAX_PARTITION_COUNT);
     }
 
 	public async clearAllSettings(): Promise<void> {
-        await chrome.storage.sync.clear();
+        await browser.storage.sync.clear();
     }
 
 	public async migrateSettings(newStorageType: ChromeStorageType): Promise<void> {
 		let newStorageApi = await StorageApiFactory.getStorageApi(newStorageType);
-		let allOptions = await chrome.storage.sync.get(null);
+		let allOptions = await browser.storage.sync.get(null);
 		await newStorageApi.saveSettingsRaw(allOptions);
 	}
 
 	public async saveSettingsRaw(settings: any): Promise<void> {
-		await chrome.storage.sync.set(settings);
+		await browser.storage.sync.set(settings);
 	}
 
     private generatePartitionedOptionsForCloudStorage(data: UrlPattern[]): any {

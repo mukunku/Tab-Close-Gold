@@ -1,21 +1,26 @@
 import { StorageApiFactory } from "./storage/storage-api-factory";
 import { UrlPattern } from "./storage/url-pattern";
-
-declare function alert(message: string): void;
-declare function prompt(message: string, value: string): string;
-declare var window: any;
+import * as browser from "webextension-polyfill";
 
 export class PopupJS {
     private $blacklistButton = $('#blacklist');
     private $optionsButton = $('#options');
+    private $body = $('body');
 
     public async init(): Promise<void> {
         this.$blacklistButton.on('click', async () => {
-            let tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            let tabs = await browser.tabs.query({ active: true, currentWindow: true });
             if (tabs && tabs[0]) {
 				let currentTab = tabs[0];
+
+                //@ts-ignore
+                let isFirefox = !browser.storage.local.QUOTA_BYTES; //QUOTA_BYTES is not defined in FF
+                if (isFirefox) {
+                    //HACK: the prompt doesn't fit into the popup in firefox so we need to resize the popup..
+                    this.$body.height(this.$body.height()! + 100);
+                }
 				
-				if (currentTab.url?.startsWith('chrome-extension') || currentTab.url?.startsWith('chrome:')) {
+				if (UrlPattern.isSystemTab(currentTab.url!)) {
 					alert("Can't blacklist this page");
 					window.close();
 					return;
@@ -27,7 +32,7 @@ export class PopupJS {
 					if (url !== null) { //null => user hit cancel
 						if (url.trim()) {
 							if (url.length > 3) {
-								this.saveNewUrlToStorage(url, currentTab.id!, currentTab.url!);
+								await this.saveNewUrlToStorage(url, currentTab.id!, currentTab.url!);
 								keepRunning = false;
 							} else {
 								alert("Please enter at least 4 characters");
@@ -39,11 +44,13 @@ export class PopupJS {
 						keepRunning = false;
 					}
 				}
+                window.close();
 			}
         });
 
-        this.$optionsButton.on('click', () => {
-            chrome.runtime.openOptionsPage();
+        this.$optionsButton.on('click', async () => {
+            await browser.runtime.openOptionsPage();
+            window.close();
         });
     }
 
@@ -66,7 +73,7 @@ export class PopupJS {
 		var alreadyExists = false;
         for (var i = 0; i < configs.length; i++) {
             var config = configs[i];
-            if (config.pattern.trim() === url.trim()) {
+            if (config.pattern.trim() === url.trim() && config.isRegex === false) {
                 alreadyExists = true;
                 break;
             }
@@ -80,12 +87,12 @@ export class PopupJS {
 
             configs.push(newConfig);
             await storageApi.saveSettings(configs);
-            let tabs = await chrome.tabs.query({ windowType:'normal' });
+            let tabs = await browser.tabs.query({ windowType:'normal' });
             if (tabs.length === 1) {
                 //If this is the only tab, lets not close the tab in order to prevent an infinite loop which can happen in rare cases
-                await chrome.tabs.update(tabId, { url: "about:blank" })
+                await browser.tabs.update(tabId, { url: "about:blank" })
             } else {
-                await chrome.tabs.remove(tabId);
+                await browser.tabs.remove(tabId);
             }
         } else {
             alert("Url already exists");

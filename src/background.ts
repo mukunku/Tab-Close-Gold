@@ -1,25 +1,24 @@
 import { StorageApiFactory } from "./storage/storage-api-factory";
 import { UrlPattern } from "./storage/url-pattern";
+import * as browser from "webextension-polyfill";
 
-chrome.tabs.onUpdated.addListener(async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType, tab: browser.Tabs.Tab) => {
 	await inspectUrl(tab, changeInfo);
 });
 
-chrome.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) => {
+browser.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) => {
 	setTimeout(async () => { 
-		let tab = await chrome.tabs.get(addedTabId);
-		await inspectUrl(tab, { url: tab.url } as chrome.tabs.TabChangeInfo)
+		let tab = await browser.tabs.get(addedTabId);
+		await inspectUrl(tab, { url: tab.url } as browser.Tabs.OnUpdatedChangeInfoType)
 	}, 10);	
 });
 
-async function inspectUrl (tab: chrome.tabs.Tab, changeInfo: chrome.tabs.TabChangeInfo): Promise<void> {
+async function inspectUrl (tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpdatedChangeInfoType): Promise<void> {
 	try 
 	{
 		//with great power comes great responsibility
-		if (!tab || !tab.id || !changeInfo || !changeInfo.url || 
-			changeInfo.url.startsWith('chrome-extension:') || 
-			changeInfo.url.startsWith('chrome:') || 
-			changeInfo.url.startsWith('about:blank')) { 
+		if (!tab || !tab.id || !changeInfo || !changeInfo.url 
+			|| UrlPattern.isSystemTab(changeInfo.url)) { 
 			return;
 		} 
 
@@ -85,12 +84,12 @@ async function inspectUrl (tab: chrome.tabs.Tab, changeInfo: chrome.tabs.TabChan
 
 async function closeTheTab(tabId: number) {
 	//check if this is the only tab
-	let tabs = await chrome.tabs.query({ windowType:'normal' });
+	let tabs = await browser.tabs.query({ windowType: 'normal' });
 	if (tabs && tabs.length === 1) {
 		//lets open a blank tab before closing this one to prevent an infinite loop which can happen in rare cases
-		await chrome.tabs.create({ url: "about:blank" });
+		await browser.tabs.create({ url: "about:blank" });
 	}
 
 	//Close the tab
-	await chrome.tabs.remove(tabId);
+	await browser.tabs.remove(tabId);
 }

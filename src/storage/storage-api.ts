@@ -2,6 +2,7 @@ import { ChromeStorageType } from './chrome-storage-types';
 import { UrlPattern } from './url-pattern';
 import LZString from 'lz-string';
 import { StorageUsage } from './storage-usage';
+import * as browser from "webextension-polyfill";
 
 export abstract class StorageApi  {
     private static readonly STORAGE_TYPE_CLOUD = { 
@@ -21,7 +22,7 @@ export abstract class StorageApi  {
 
     public static async getUserStorageType(): Promise<ChromeStorageType> {
         //We always store the user's storage type in the cloud
-        let options = await chrome.storage.sync.get(StorageApi.STORAGE_TYPE_DEFAULT);
+        let options = await browser.storage.sync.get(StorageApi.STORAGE_TYPE_DEFAULT);
         if (options && options.useCloudStorage) {
             return ChromeStorageType.Cloud;
         } else {
@@ -49,7 +50,7 @@ export abstract class StorageApi  {
             //Migrate the settings to the new storage location
             await this.migrateSettings(newStorageType)
             //If we got here that means migration was successful, so mark storage type accordingly
-            await chrome.storage.sync.set(getStorageSettingValue(newStorageType));
+            await browser.storage.sync.set(getStorageSettingValue(newStorageType));
         } catch(err: any) {
             console.log(`Tab Close Gold - Couldn't switch storage type: ${err?.message}`);
             return false;

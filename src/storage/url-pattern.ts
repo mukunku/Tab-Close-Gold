@@ -33,5 +33,21 @@ export class UrlPattern {
         lastHits: [],
         lastHitOn: null,
         delayInMs: 0
-    }];   
+    },{
+        enabled: false,
+        pattern: "zoom.us/j/*",
+        isRegex: false,
+        hitCount: 0,
+        lastHit: '',
+        lastHits: [],
+        lastHitOn: null,
+        delayInMs: 5000
+    }]; 
+    
+    public static isSystemTab(url: string): boolean {
+        return url.startsWith('chrome-extension:') || 
+			url.startsWith('chrome:') || 
+			url.startsWith('about:') || 
+			url.startsWith('moz-extension:');
+    }
 }
