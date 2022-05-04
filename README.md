@@ -1,4 +1,6 @@
 # Tab-Close-Gold
-Formerly known as "Ad Close Gold"; Chrome extension (addon) to auto close tabs
+Firefox & Chrome extension (addon) to auto close tabs. Formerly known as "Ad Close Gold"
 
-See: https://chrome.google.com/webstore/detail/ad-close-gold/blhbohajaekmpblcffpkpogkhkmmbbhf
+# Download 
+* Chrome: https://chrome.google.com/webstore/detail/tab-close-gold/blhbohajaekmpblcffpkpogkhkmmbbhf 
+* Firefox: https://addons.mozilla.org/en-US/firefox/addon/tab-close-gold/

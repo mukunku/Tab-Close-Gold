@@ -12,11 +12,6 @@ import './node_modules/slickgrid/slick.formatters';
 import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid'; 
 
-declare function alert(message: string): void;
-declare function prompt(message: string, value?: string): string;
-declare function confirm(message: string): boolean;
-declare var location: any;
-
 export class OptionsJS { 
     private static readonly columns = [
         {
@@ -203,6 +198,8 @@ export class OptionsJS {
         ]); //show last hit first
 
         this.attachEvents();
+
+        this.$configTextArea.val(''); //clear input on refresh (for firefox)
     }
 
     private attachEvents(): void {
@@ -302,7 +299,7 @@ export class OptionsJS {
         {   
             let storageApi = await StorageApiFactory.getStorageApi();
             let rawOptions = <UrlPattern[]>this.slickgrid?.getData();
-            storageApi.saveSettings(rawOptions);
+            await storageApi.saveSettings(rawOptions);
             await this.toggleSaveChangesButton(false);
             if (typeof callback === 'function') {
                 callback(true);
@@ -311,7 +308,7 @@ export class OptionsJS {
         catch(err: any)
         {
             if (!suppressErrors) {
-                console.log(`Tab Close Gold - Error while saving changes: ${chrome.runtime.lastError?.message}`);
+                console.error(`Tab Close Gold - Error while saving changes: ${err.message}`);
                 alert("Could not save configuration!");
             }
             if (typeof callback === 'function') {
@@ -324,6 +321,7 @@ export class OptionsJS {
         let storageApi = await StorageApiFactory.getStorageApi(storageType);
         let storageUsage = await storageApi.getStorageUsage();
 		var percentageText = storageUsage.percentage.toFixed(2) + '%';
+        
         $('#storage-usage-progress-bar')
             .prop('max', storageUsage.maxBytes)
             .prop('value', storageUsage.bytesUsed)
