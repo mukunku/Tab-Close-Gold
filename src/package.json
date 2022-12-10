@@ -5,7 +5,8 @@
     "build:prod": "tsc && npx webpack --no-devtool --mode production",
     "watch:tsc": "tsc --watch",
     "watch:webpack": "npx webpack watch --mode development",
-    "publish": "npm run build:prod && node publish.js"
+    "publish": "npm run build:prod && node publish.js",
+    "publish-debug": "npm run build && node publish.js"
   },
   "dependencies": {
     "lz-string": "^1.4.4",
