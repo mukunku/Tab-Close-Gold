@@ -153,7 +153,6 @@ export class OptionsJS {
     };
 
     private readonly $storageDropdown = $('#storage-dropdown');
-    private readonly $saveConfigButton = $('#saveConfig');
     private readonly $exportConfigButton = $('#exportConfig');
     private readonly $importConfigButton = $('#importConfig');
     private readonly $configTextArea = $('#configTextArea');
@@ -179,22 +178,14 @@ export class OptionsJS {
             }
             //For some reason 'lastHitOn' is string in our storage. TODO: Need to investigate but seems to be working
             let result = pattern2.lastHitOn?.toString().localeCompare(pattern1.lastHitOn?.toString() || '') //lastHitOn desc
-            if (result === null || result === undefined || result === 0) {
-                result = pattern2.hitCount - pattern1.hitCount;//hitCount desc
-                if (result === null || result === undefined || result === 0) {
-                    result = pattern1.pattern.localeCompare(pattern2.pattern); //pattern asc
-                }
-            }
-            return result;
+            return result!;
         });
 
         this.populateGrid("#body", urlPatterns, OptionsJS.columns, OptionsJS.options);
 
         //Tell slick grid the data is sorted (doesn't actually trigger sort)
         this.slickgrid?.setSortColumns([
-            { columnId: 'lastHitOn', sortAsc: false}, 
-            { columnId: 'hitCount', sortAsc: false },
-            { columnId: 'pattern', sortAsc: true },
+            { columnId: 'lastHitOn', sortAsc: false}
         ]); //show last hit first
 
         this.attachEvents();
@@ -209,10 +200,6 @@ export class OptionsJS {
             let currentStorageApi = await StorageApiFactory.getStorageApi();
             await currentStorageApi.changeUserStorageType(selectedStorageType);
             this.updateStorageUsageProgressBar(selectedStorageType);
-        });
-
-        this.$saveConfigButton.on('click', () => {
-            this.saveSettings(false);
         });
 
         this.$exportConfigButton.on('click', () => {
@@ -265,7 +252,7 @@ export class OptionsJS {
                 this.slickgrid.render();
                 
                 if (wasAnyImported)
-                    await this.toggleSaveChangesButton(true);
+                    await this.saveSettings(false);
             }
             catch(err) {
                 alert('Config was not in the correct format. Import failed!');
@@ -294,26 +281,17 @@ export class OptionsJS {
         });
     }
 
-    private async saveSettings(suppressErrors: boolean, callback?: Function): Promise<void> {
+    private async saveSettings(): Promise<void> {
         try
         {   
             let storageApi = await StorageApiFactory.getStorageApi();
             let rawOptions = <UrlPattern[]>this.slickgrid?.getData();
             await storageApi.saveSettings(rawOptions);
-            await this.toggleSaveChangesButton(false);
-            if (typeof callback === 'function') {
-                callback(true);
-            }
         }
         catch(err: any)
         {
-            if (!suppressErrors) {
-                console.error(`Tab Close Gold - Error while saving changes: ${err.message}`);
-                alert("Could not save configuration!");
-            }
-            if (typeof callback === 'function') {
-                callback(false);
-            }
+            console.error(`Tab Close Gold - Error while saving changes: ${err.message}`);
+            alert("Could not save configuration!");
         }
 	}
 
@@ -364,7 +342,7 @@ export class OptionsJS {
                         args.grid.getData().splice(args.row, 1);
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
-                        await this.toggleSaveChangesButton(true);
+                        await this.saveSettings(false);
                     }
 				} else if (args.grid.getColumns()[args.cell].id === "resethits") {
                     if (confirm("Are you sure you want to reset hits?")) {
@@ -373,7 +351,7 @@ export class OptionsJS {
                         args.grid.getData()[args.row].lastHitOn = null;
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
-                        await this.toggleSaveChangesButton(true);
+                        await this.saveSettings(false);
                     }
 				} else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
                     let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ? 
@@ -383,7 +361,7 @@ export class OptionsJS {
                     let delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, parseInt(delay));
                     if (delayInMs >= 0) {
                         args.grid.getData()[args.row].delayInMs = delayInMs;
-                        await this.toggleSaveChangesButton(true);
+                        await this.saveSettings(false);
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                     }
@@ -422,33 +400,31 @@ export class OptionsJS {
 			args.grid.updateRowCount();
 			args.grid.render();
 			
-			await this.toggleSaveChangesButton(true);
+			await this.saveSettings(false);
 		});
 		
 		this.slickgrid.onCellChange.subscribe(async (e, args) => {
+            args.item.pattern = args.item.pattern && args.item.pattern.trim();
 			if (args.item.pattern && args.item.isRegex) {
 				try {
 					new RegExp(args.item.pattern);
-				} catch(e) {
+				} catch(ex) {
 					alert("Your pattern is not a valid regex!");
+                    args.grid.flashCell(args.row, 
+                        args.grid.getColumns().findIndex(c => c.id === "pattern"), 
+                        200);
+                    return;
 				}
-			}
-			
-			args.item.pattern = args.item.pattern && args.item.pattern.trim();
-			
-            await this.toggleSaveChangesButton(true);
+			} else if (!args.item.pattern) {
+                alert("You cannot leave the URL Search Pattern empty.");
+                args.grid.flashCell(args.row, 
+                    args.grid.getColumns().findIndex(c => c.id === "pattern"), 
+                    200);
+                return;
+            }
+            await this.saveSettings(false);
 		});
 	}
-
-    private async toggleSaveChangesButton(isEnabled: boolean): Promise<void> {
-        if (isEnabled) {
-            //this.$saveConfigButton.prop('disabled', false).css('background-color', '#1FFF45');
-            //No more save changes button, lets just save instead! TODO: Remove the button html and these lines
-            await this.saveSettings(false);
-        } else {
-            //this.$saveConfigButton.prop('disabled', true).css('background-color', '');
-        }
-    }
 }
 
 //equivalent to $(document).ready(...)
