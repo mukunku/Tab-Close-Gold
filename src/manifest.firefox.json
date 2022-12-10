@@ -1,7 +1,7 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Tab Close Gold",
-    "version": "2.1.0.0",
+    "version": "2.2.0.0",
     "permissions": [
       "tabs",
       "storage"
@@ -16,11 +16,12 @@
     },
     "author": "mukunku",
     "background": {
-      "persistent": false,
       "scripts": ["background.bundle.js"]
     },
-    "content_security_policy": "script-src 'self'; object-src 'self'",
-    "browser_action": {
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+    "action": {
       "default_icon": {               
         "128": "icon128.png"
       },
@@ -30,7 +31,7 @@
     "browser_specific_settings": {
         "gecko": {
             "id": "tabclosegold@mukunku.com",
-            "strict_min_version": "79.0"
+            "strict_min_version": "107.0"
         }
     }
 }
