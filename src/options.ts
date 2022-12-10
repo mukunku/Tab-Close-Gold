@@ -252,7 +252,7 @@ export class OptionsJS {
                 this.slickgrid.render();
                 
                 if (wasAnyImported)
-                    await this.saveSettings(false);
+                    await this.saveSettings();
             }
             catch(err) {
                 alert('Config was not in the correct format. Import failed!');
@@ -342,7 +342,7 @@ export class OptionsJS {
                         args.grid.getData().splice(args.row, 1);
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
-                        await this.saveSettings(false);
+                        await this.saveSettings();
                     }
 				} else if (args.grid.getColumns()[args.cell].id === "resethits") {
                     if (confirm("Are you sure you want to reset hits?")) {
@@ -351,7 +351,7 @@ export class OptionsJS {
                         args.grid.getData()[args.row].lastHitOn = null;
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
-                        await this.saveSettings(false);
+                        await this.saveSettings();
                     }
 				} else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
                     let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ? 
@@ -361,7 +361,7 @@ export class OptionsJS {
                     let delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, parseInt(delay));
                     if (delayInMs >= 0) {
                         args.grid.getData()[args.row].delayInMs = delayInMs;
-                        await this.saveSettings(false);
+                        await this.saveSettings();
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                     }
@@ -400,7 +400,7 @@ export class OptionsJS {
 			args.grid.updateRowCount();
 			args.grid.render();
 			
-			await this.saveSettings(false);
+			await this.saveSettings();
 		});
 		
 		this.slickgrid.onCellChange.subscribe(async (e, args) => {
@@ -422,7 +422,7 @@ export class OptionsJS {
                     200);
                 return;
             }
-            await this.saveSettings(false);
+            await this.saveSettings();
 		});
 	}
 }
