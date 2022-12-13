@@ -225,9 +225,13 @@ export class OptionsJS {
                 if (!this.slickgrid || !this.slickgrid.render)
                     return; //Is this check still needed?
             
-                var importConfig: UrlPattern[] = JSON.parse(<string>this.$configTextArea.val());
+                var jsonToImport = <string>this.$configTextArea.val();
+                if (!jsonToImport)
+                    return;
+
+                var importConfig: UrlPattern[] = JSON.parse(jsonToImport);
                 let existingConfig: UrlPattern[] = this.slickgrid.getData();
-                let wasAnyImported = false;
+                let importedCount = 0;
                 for(var i = 0; i < importConfig.length; i++) {
 					var config = importConfig[i];
 					
@@ -242,7 +246,7 @@ export class OptionsJS {
                             && ec.isRegex === urlPattern.isRegex).length === 0) {
                                 //only add the pattern if it doesn't already exist
                                 existingConfig.push(urlPattern);
-                                wasAnyImported = true;
+                                importedCount++;
                         }
                     }
 				}
@@ -251,8 +255,10 @@ export class OptionsJS {
                 this.slickgrid.invalidateAllRows();
                 this.slickgrid.render();
                 
-                if (wasAnyImported)
+                if (importedCount > 0)
                     await this.saveSettings();
+                
+                alert(`${importedCount} new record(s) imported`);
             }
             catch(err) {
                 alert('Config was not in the correct format. Import failed!');
