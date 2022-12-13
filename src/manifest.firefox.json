@@ -31,7 +31,7 @@
     "browser_specific_settings": {
         "gecko": {
             "id": "tabclosegold@mukunku.com",
-            "strict_min_version": "107.0"
+            "strict_min_version": "109.0"
         }
     }
 }
