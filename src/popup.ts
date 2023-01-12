@@ -18,6 +18,7 @@ export class PopupJS {
                 if (isFirefox) {
                     //HACK: the prompt doesn't fit into the popup in firefox so we need to resize the popup..
                     this.$body.height(this.$body.height()! + 100);
+                    this.$body.width(this.$body.width()! + 200);
                 }
 				
 				if (UrlPattern.isSystemTab(currentTab.url!)) {

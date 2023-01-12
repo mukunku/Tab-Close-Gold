@@ -1,7 +1,7 @@
 let webpack = require('webpack');
  
 module.exports = (env, argv) => {
-  //var isProd = argv.mode === 'production' ? true : false;
+  var isProd = argv.mode === 'production' ? true : false;
   return {
     entry: {
       'background': './background.js',
@@ -26,7 +26,7 @@ module.exports = (env, argv) => {
       }
     },
     optimization: {
-      minimize: true
+      minimize: isProd
     }
   }
 };
