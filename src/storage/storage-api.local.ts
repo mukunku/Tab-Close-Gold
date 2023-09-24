@@ -1,6 +1,6 @@
 import { StorageApi } from "./storage-api";
 import { UrlPattern } from "./url-pattern";
-import LZString from 'lz-string';
+import * as LZString from 'lz-string';
 import { StorageUsage } from "./storage-usage";
 import { StorageApiFactory } from "./storage-api-factory";
 import { ChromeStorageType } from "./chrome-storage-types";
@@ -28,10 +28,25 @@ export class LocalStorageApi extends StorageApi {
             // @ts-ignore
             let bytesUsed = await browser.storage.local.getBytesInUse(null); //null = get all usage
             return new StorageUsage(bytesUsed, browser.storage.local.QUOTA_BYTES);
-        } else {
-            //HACK: Firefox has a bug so cant get usage info for local storage: https://bugzilla.mozilla.org/show_bug.cgi?id=1385832
-            //Firefox also doesn't define the QUOTA_BYTES constant...
-            return new StorageUsage(0, 0);
+        } else { //Firefox
+            //Firefox doesn't define a QUOTA_BYTES constant. Their documetation says they can't provide
+            //an exact number ?! So let's hard code Chrome's QUOTA_BYTES value as a best effort *shrug*
+            const CHROME_LOCAL_STORAGE_QUOTA_BYTES = 10485760;
+            return new StorageUsage(await this.calculateBytesInUse(), CHROME_LOCAL_STORAGE_QUOTA_BYTES);
+        }
+    }
+
+    //HACK: Firefox has a bug so cant get usage info for local storage: https://bugzilla.mozilla.org/show_bug.cgi?id=1385832
+    public async calculateBytesInUse(): Promise<number> {
+        try {
+            return new TextEncoder().encode(
+                Object.entries(await browser.storage.session.get(null))
+                .map(([key, value]) => key + JSON.stringify(value))
+                .join('')
+            ).length;
+        } catch (error) {
+            console.log(error);
+            return 0;
         }
     }
 

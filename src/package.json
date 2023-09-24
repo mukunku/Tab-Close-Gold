@@ -9,8 +9,8 @@
     "publish-debug": "npm run build && node publish.js"
   },
   "dependencies": {
-    "lz-string": "^1.4.4",
-    "slickgrid": "2.4.44"
+    "lz-string": "^1.5.0",
+    "slickgrid": "2.4.45"
   },
   "devDependencies": {
     "@types/slickgrid": "^2.1.36",

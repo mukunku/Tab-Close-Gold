@@ -1,6 +1,6 @@
 import { StorageApi } from "./storage-api";
 import { UrlPattern } from "./url-pattern";
-import LZString from 'lz-string';
+import * as LZString from "lz-string";
 import { StorageUsage } from "./storage-usage";
 import { ChromeStorageType } from "./chrome-storage-types";
 import { StorageApiFactory } from "./storage-api-factory";

@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Tab Close Gold",
-  "version": "2.2.1.0",
+  "version": "2.3.0.0",
   "permissions": [
     "tabs",
 	  "storage"
   ],
   "options_page": "./options.html",
-  "description": "Tired of ads passing by your ad blocker? Zoom tabs annoying you? Want a simple extension to auto close tabs? Then look no further!",
+  "description": "Tired of ads passing by your ad blocker? Leftover Zoom tabs got you down? Want a simple extension to auto close tabs? Then look no further!",
   "icons": { 
     "128": "icon128.png"
   },

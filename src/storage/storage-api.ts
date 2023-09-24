@@ -1,6 +1,6 @@
 import { ChromeStorageType } from './chrome-storage-types';
 import { UrlPattern } from './url-pattern';
-import LZString from 'lz-string';
+import * as LZString from 'lz-string';
 import { StorageUsage } from './storage-usage';
 import * as browser from "webextension-polyfill";
 
@@ -17,7 +17,7 @@ export abstract class StorageApi  {
     public abstract saveSettings(values: UrlPattern[]): Promise<void>;
     public abstract getStorageUsage(): Promise<StorageUsage>;
     public abstract clearAllSettings(): Promise<void>;
-    public abstract saveSettingsRaw(settings: any): Promise<void>;
+    public abstract saveSettingsRaw(settings: any): Promise<void>; //private abstract is not supported
     protected abstract migrateSettings(newStorageType: ChromeStorageType): Promise<void>;
 
     public static async getUserStorageType(): Promise<ChromeStorageType> {
@@ -36,21 +36,25 @@ export abstract class StorageApi  {
         }
 
         function getStorageSettingValue(storageTypeValue: ChromeStorageType) {
-            if (newStorageType === ChromeStorageType.Cloud) {
+            if (storageTypeValue === ChromeStorageType.Cloud) {
                 return StorageApi.STORAGE_TYPE_CLOUD;
-            } else if (newStorageType === ChromeStorageType.Local) {
+            } else if (storageTypeValue === ChromeStorageType.Local) {
                 return StorageApi.STORAGE_TYPE_LOCAL;
             } else {
-                throw new Error(`Tab Close Gold - Unsupported new storage type: ${newStorageType}`);
+                throw new Error(`Tab Close Gold - Unsupported new storage type: ${storageTypeValue}`);
             }
         }
 
         try
         {
+            //Get new storage location setting. We do this first to verify the new storage type is supported
+            let setting = getStorageSettingValue(newStorageType);
+
             //Migrate the settings to the new storage location
-            await this.migrateSettings(newStorageType)
+            await this.migrateSettings(newStorageType);
+
             //If we got here that means migration was successful, so mark storage type accordingly
-            await browser.storage.sync.set(getStorageSettingValue(newStorageType));
+            await browser.storage.sync.set(setting);
         } catch(err: any) {
             console.log(`Tab Close Gold - Couldn't switch storage type: ${err?.message}`);
             return false;
