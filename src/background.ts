@@ -51,6 +51,14 @@ async function inspectUrl (tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpd
 				}
 				
 				if (isHit) {
+					if (config.delayInMs > 0) {
+						setTimeout(async () => { 
+							await closeTheTab(tab.id!);
+						}, Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS));
+					} else {
+						await closeTheTab(tab.id!);
+					}
+
 					config.lastHit = null; //this field isn't used anymore
 					config.hitCount++;
 					config.lastHitOn = new Date();
@@ -61,17 +69,9 @@ async function inspectUrl (tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpd
 					while (config.lastHits.length > UrlPattern.LAST_HIT_HISTORY_COUNT) {
 						config.lastHits.shift();
 					}
-					
+
 					//save new hit info
 					await storageApi.saveSettings(configs);
-
-					if (config.delayInMs > 0) {
-						setTimeout(async () => { 
-							await closeTheTab(tab.id!);
-						}, Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS));
-					} else {
-						await closeTheTab(tab.id!);
-					}
 
 					break;
 				}
