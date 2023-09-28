@@ -13,17 +13,6 @@ browser.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) =
 	}, 10);	
 });
 
-// browser.runtime.onInstalled.addListener(async ({ reason }) => {
-// 	if (reason !== 'install') {
-// 		return;
-// 	}
-
-// 	browser.alarms.create('save-queued-hits-scheduled-job', {
-// 		delayInMinutes: 1,
-// 		periodInMinutes: 1
-// 	});
-// });
-
 async function inspectUrl (tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpdatedChangeInfoType): Promise<void> {
 	try 
 	{

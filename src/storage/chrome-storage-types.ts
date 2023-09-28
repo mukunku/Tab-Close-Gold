@@ -1,4 +1,5 @@
 export enum ChromeStorageType {
     Cloud,
-    Local
+    Local,
+    Session
 }

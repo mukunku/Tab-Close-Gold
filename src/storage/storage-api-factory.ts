@@ -2,6 +2,7 @@ import { ChromeStorageType } from "./chrome-storage-types";
 import { StorageApi } from "./storage-api";
 import { CloudStorageApi } from "./storage-api.cloud";
 import { LocalStorageApi } from "./storage-api.local";
+import { SessionStorageApi } from "./storage-api.session";
 
 export class StorageApiFactory {
     static async getStorageApi(storageType?: ChromeStorageType): Promise<StorageApi> {
@@ -11,6 +12,8 @@ export class StorageApiFactory {
             return new CloudStorageApi();
         else if (_storageType === ChromeStorageType.Local)
             return new LocalStorageApi();
+        else if (_storageType === ChromeStorageType.Session)
+            return new SessionStorageApi();
         else 
             throw new Error(`Tab Close Gold - Unsupported storage setting detected: ${_storageType}`);
     }
