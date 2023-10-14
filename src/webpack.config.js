@@ -3,6 +3,16 @@ let webpack = require('webpack');
 module.exports = (env, argv) => {
   var isProd = argv.mode === 'production' ? true : false;
   return {
+    module: {
+      rules: [
+        {
+          //Makes sure source maps are propagated into the webpack bundles
+          test: /\.js$/,
+          enforce: "pre",
+          use: ["source-map-loader"],
+        },
+      ],
+    },
     entry: {
       'background': './background.js',
       'options': './options.js',
