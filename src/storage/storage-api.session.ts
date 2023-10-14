@@ -31,8 +31,8 @@ export class SessionStorageApi extends StorageApi {
         } else { //Firefox
             //Firefox doesn't define a QUOTA_BYTES constant. But their documentation says it's 10MB 
             //which is the same as Chrome's limit. So let's use that instead
-            const CHROME_LOCAL_STORAGE_QUOTA_BYTES = 10485760;
-            return new StorageUsage(await this.calculateBytesInUse(), CHROME_LOCAL_STORAGE_QUOTA_BYTES);
+            const CHROME_SESSION_STORAGE_QUOTA_BYTES = 10485760;
+            return new StorageUsage(await this.calculateBytesInUse(), CHROME_SESSION_STORAGE_QUOTA_BYTES);
         }
     }
 
@@ -62,5 +62,16 @@ export class SessionStorageApi extends StorageApi {
         let newStorageApi = await StorageApiFactory.getStorageApi(newStorageType);
 		let allOptions = await browser.storage.session.get(null);
 		await newStorageApi.saveSettingsRaw(allOptions);
+    }
+
+    public async SetByKey(key: string, value: any): Promise<void> {
+        var keyValue = {} as any;
+        keyValue[key] = value;
+        return browser.storage.session.set(keyValue);
+    }
+
+    public async GetByKey(key: string): Promise<any> {
+        let value = browser.storage.session.get(key);
+        return value;
     }
 }

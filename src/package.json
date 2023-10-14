@@ -19,6 +19,7 @@
     "typescript": "^5.2.2",
     "webextension-polyfill": "^0.10.0",
     "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "source-map-loader": "^4.0.1"
   }
 }
