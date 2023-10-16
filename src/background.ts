@@ -132,7 +132,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 			if (key?.startsWith("config-")) {
 				haveSavedConfigsChanged = true;
 			} else {
-				Logger.getInstance().logDebug(
+				Logger.getInstance().logTrace(
 					`Storage key "${key}" in namespace "${namespace}" changed. ` +
 					`Old value was "${oldValue?.toString().substring(0, 20)}", new value is "${newValue?.toString().substring(0, 20)}".`
 				);
@@ -140,7 +140,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 		}
 
 		if (haveSavedConfigsChanged) {
-			Logger.getInstance().logDebug(`Configurations updated in "${namespace}"`);
+			Logger.getInstance().logTrace(`Configurations updated in "${namespace}"`);
 		}
 
 	} catch (error: any) {
@@ -149,7 +149,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 });
 
 class PeriodicSettingSyncer {
-	private static readonly SYNC_FREQUENCY_MS = 5000;
+	private static readonly SYNC_FREQUENCY_MS = 2000; //MAX_WRITE_OPERATIONS_PER_HOUR = 1800 -> So max every 2 seconds
 	private static instance: PeriodicSettingSyncer | null;
 	private intervalId: NodeJS.Timeout | null;
 	private syncFailureCount: number = 0;
@@ -208,7 +208,7 @@ class PeriodicSettingSyncer {
 			await storageApi.saveSettings(this.configs, false);
 			this.syncFailureCount = 0;
 
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: synced hit statistic changes.");
+			Logger.getInstance().logDebug("PeriodicSettingSyncer: saved updated hit statistic.");
 		} catch (error: any) {
 			this.syncFailureCount++;
 

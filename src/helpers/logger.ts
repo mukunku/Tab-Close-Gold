@@ -1,11 +1,12 @@
 import { SessionStorageApi } from "../storage/storage-api.session";
 import { CircularLogBuffer } from "./circular-log-buffer";
+import { Environment, RuntimeEnvironment } from "./env";
 import { Queue } from "./queue";
 
 export class Logger {
     private static readonly SESSION_LOGS_KEY: string = 'session-logs';
     private static readonly KEEP_LAST_N_LOGS: number = 100000;
-    private static readonly FLUSH_INTERVAL_MS: number = 5000;
+    private static readonly FLUSH_INTERVAL_MS: number = 2000;
     private static readonly SYNC_FAILURE_THRESHOLD: number = 5;
     private static readonly LOGS_PER_SYNC_BATCH_SIZE: number = 1000;
 
@@ -14,11 +15,18 @@ export class Logger {
     private queue: Queue<LogRecord>;
     private intervalId: NodeJS.Timeout;
     private syncFailureCount: number = 0;
+    private logLevel: LogLevel;
 
     private constructor() {
         this.sessionLogger = new SessionStorageApi();
         this.sessionLogger.SetByKey(Logger.SESSION_LOGS_KEY, new CircularLogBuffer<LogRecord>(Logger.KEEP_LAST_N_LOGS));
         this.queue = new Queue<LogRecord>();
+
+        if (Environment.getEnvironment() === RuntimeEnvironment.Development) {
+            this.logLevel = LogLevel.All;
+        } else {
+            this.logLevel = LogLevel.Warning | LogLevel.Error;
+        }
 
         //Flush logs to session storage regularly 
         this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
@@ -32,24 +40,40 @@ export class Logger {
     }
 
     public logTrace(message: string): void {
+        if ((this.logLevel & LogLevel.Trace) !== LogLevel.Trace) {
+            return;
+        }
+
         message = Logger.timestampMessage(message);
-        console.trace(message);
+        console.log(message);
         this.log(message, LogType.Trace);
     }
 
     public logDebug(message: string): void {
+        if ((this.logLevel & LogLevel.Debug) !== LogLevel.Debug) {
+            return;
+        }
+
         message = Logger.timestampMessage(message);
         console.log(message)
         this.log(message, LogType.Debug);
     }
 
     public logWarning(message: string): void {
+        if ((this.logLevel & LogLevel.Warning) !== LogLevel.Warning) {
+            return;
+        }
+
         message = Logger.timestampMessage(message);
         console.warn(message);
         this.log(message, LogType.Warning);
     }
 
     public logError(message: string): void {
+        if ((this.logLevel & LogLevel.Error) !== LogLevel.Error) {
+            return;
+        }
+
         message = Logger.timestampMessage(message);
         console.error(message);
         this.log(message, LogType.Error);
@@ -133,4 +157,13 @@ class LogRecord {
         this.type = type || LogType.Trace;
         this.date = new Date();
     }
+}
+
+export enum LogLevel {
+    None = 0,
+    Trace = 1 << 0, 
+    Debug = 1 << 1, 
+    Warning = 1 << 2,  
+    Error = 1 << 3, 
+    All = ~(~0 << 4) 
 }
