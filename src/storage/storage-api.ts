@@ -3,7 +3,6 @@ import { UrlPattern } from './url-pattern';
 import * as LZString from 'lz-string';
 import { StorageUsage } from './storage-usage';
 import * as browser from "webextension-polyfill";
-import { Logger } from '../helpers/logger';
 
 export abstract class StorageApi {
     public static readonly LAST_SAVE_DATE_KEY: string = "last-save-date";
@@ -74,7 +73,8 @@ export abstract class StorageApi {
             //If we got here that means migration was successful, so mark storage type accordingly
             await browser.storage.sync.set(setting);
         } catch (error: any) {
-            Logger.getInstance().logError(`Couldn't switch storage type: ${error.message}`);
+            //Can't access Logger here due to circular dependencies
+            console.error(`Couldn't switch storage type: ${error.message}`);
             return false;
         }
         return true;
