@@ -31,7 +31,7 @@ export abstract class StorageApi {
     }
 
     public async saveSettings(values: UrlPattern[], updateSaveDate: boolean): Promise<void> {
-        let optionsRaw = this.saveSettingsImpl(values) as any;
+        let optionsRaw = (await this.saveSettingsImpl(values)) as any;
         if (updateSaveDate) {
             optionsRaw[StorageApi.LAST_SAVE_DATE_KEY] = new Date().toISOString(); //UTC timezone
         }

@@ -13,7 +13,7 @@ export class LocalStorageApi extends StorageApi {
         super(browser.storage.local);
     }
 
-    public async saveSettingsImpl(values: UrlPattern[], additionalSettings?: Map<string, string>): Promise<any> {
+    public async saveSettingsImpl(values: UrlPattern[]): Promise<any> {
         //No 'per-item' storage limitations in local storage so we can just dump it all into one item
         var optionsRaw = {'config-1': LZString.compressToUTF16(JSON.stringify(values))};
         return optionsRaw;

@@ -169,7 +169,7 @@ class PeriodicSettingSyncer {
 	}
 
 	private async sync(): Promise<void> {
-		if (!this.hasNewHits) {
+		if (!this.hasNewHits && !this.hasNewConfigs) {
 			return;
 		}
 
