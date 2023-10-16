@@ -10,9 +10,10 @@ import './node_modules/slickgrid/lib/jquery.event.drag-2.3.0';
 import './node_modules/slickgrid/lib/jquery.event.drop-2.3.0';
 import './node_modules/slickgrid/slick.formatters';
 import './node_modules/slickgrid/slick.editors';
-import './node_modules/slickgrid/slick.grid'; 
+import './node_modules/slickgrid/slick.grid';
+import { Logger } from "./helpers/logger";
 
-export class OptionsJS { 
+export class OptionsJS {
     private static readonly columns = [
         {
             name: "Enabled",
@@ -21,11 +22,11 @@ export class OptionsJS {
             sortable: true,
             resizable: false,
             cannotTriggerInsert: true,
-            formatter: Slick.Formatters.Checkmark, 
+            formatter: Slick.Formatters.Checkmark,
             editor: Slick.Editors.Checkbox,
             cssClass: "centerText",
             width: 60
-        }, 
+        },
         {
             name: "URL Search Pattern",
             field: "pattern",
@@ -34,7 +35,7 @@ export class OptionsJS {
             resizable: true,
             cannotTriggerInsert: false,
             editor: Slick.Editors.Text
-        }, 
+        },
         {
             name: "Delay",
             field: "delayInMs",
@@ -60,7 +61,7 @@ export class OptionsJS {
             sortable: true,
             resizable: false,
             cannotTriggerInsert: true,
-            formatter: Slick.Formatters.Checkmark, 
+            formatter: Slick.Formatters.Checkmark,
             editor: Slick.Editors.Checkbox,
             cssClass: "centerText",
             width: 60
@@ -82,7 +83,7 @@ export class OptionsJS {
             id: "hitHistory",
             sortable: false,
             resizable: false,
-            formatter: function() {
+            formatter: function () {
                 return "last hits";
             },
             cannotTriggerInsert: true,
@@ -91,7 +92,7 @@ export class OptionsJS {
             width: 60
         },
         {
-			name: "Last Hit On",
+            name: "Last Hit On",
             field: "lastHitOn",
             id: "lastHitOn",
             sortable: true,
@@ -106,20 +107,20 @@ export class OptionsJS {
                     } catch {
                         return value;
                     }
-                }     
+                }
             },
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "centerText",
             width: 130
-		},
+        },
         {
             name: "Delete",
             field: "delete",
             id: "delete",
             sortable: false,
             resizable: false,
-            formatter: function() {
+            formatter: function () {
                 return "delete";
             },
             cannotTriggerInsert: true,
@@ -133,7 +134,7 @@ export class OptionsJS {
             id: "resethits",
             sortable: false,
             resizable: false,
-            formatter: function() {
+            formatter: function () {
                 return "reset hits";
             },
             cannotTriggerInsert: true,
@@ -172,7 +173,7 @@ export class OptionsJS {
         let urlPatterns = await (await StorageApiFactory.getStorageApi()).getSettings();
 
         //sort by Last Hit On desc
-        urlPatterns.sort((pattern1, pattern2) => { 
+        urlPatterns.sort((pattern1, pattern2) => {
             if (!pattern1 || !pattern2) {
                 return -1;
             }
@@ -185,7 +186,7 @@ export class OptionsJS {
 
         //Tell slick grid the data is sorted (doesn't actually trigger sort)
         this.slickgrid?.setSortColumns([
-            { columnId: 'lastHitOn', sortAsc: false}
+            { columnId: 'lastHitOn', sortAsc: false }
         ]); //show last hit first
 
         this.attachEvents();
@@ -198,7 +199,13 @@ export class OptionsJS {
             let selectedValue = <string>this.$storageDropdown.val();
             let selectedStorageType = ChromeStorageType[selectedValue as keyof typeof ChromeStorageType];
             let currentStorageApi = await StorageApiFactory.getStorageApi();
-            await currentStorageApi.changeUserStorageType(selectedStorageType);
+            let desiredStorageApi = await StorageApiFactory.getStorageApi(selectedStorageType);
+
+            if (currentStorageApi.storageType === desiredStorageApi.storageType) {
+                return;
+            }
+
+            await currentStorageApi.changeUserStorageType(desiredStorageApi);
             this.updateStorageUsageProgressBar(selectedStorageType);
         });
 
@@ -215,16 +222,15 @@ export class OptionsJS {
                 if (exportConfig[i].delayInMs > 0) {
                     output[i].delayInMs = exportConfig[i].delayInMs;
                 }
-			}
+            }
             this.$configTextArea.val(JSON.stringify(output));
         });
-        
+
         this.$importConfigButton.on('click', async () => {
-            try
-            {
+            try {
                 if (!this.slickgrid || !this.slickgrid.render)
                     return; //Is this check still needed?
-            
+
                 var jsonToImport = <string>this.$configTextArea.val();
                 if (!jsonToImport)
                     return;
@@ -232,36 +238,44 @@ export class OptionsJS {
                 var importConfig: UrlPattern[] = JSON.parse(jsonToImport);
                 let existingConfig: UrlPattern[] = this.slickgrid.getData();
                 let importedCount = 0;
-                for(var i = 0; i < importConfig.length; i++) {
-					var config = importConfig[i];
-					
+                for (var i = 0; i < importConfig.length; i++) {
+                    var config = importConfig[i];
+
                     if (config && config.pattern && config.pattern.trim()) {
                         let urlPattern = new UrlPattern(config.pattern.trim(), !!config.isRegex);
                         urlPattern.enabled = !!config.enabled;
-                        urlPattern.delayInMs 
+                        urlPattern.delayInMs
                             = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs) || 0;
 
                         //TODO: fix this n^2 time complexity
-                        if (existingConfig.filter(ec => ec.pattern === urlPattern.pattern 
+                        if (existingConfig.filter(ec => ec.pattern === urlPattern.pattern
                             && ec.isRegex === urlPattern.isRegex).length === 0) {
-                                //only add the pattern if it doesn't already exist
-                                existingConfig.push(urlPattern);
-                                importedCount++;
+                            //only add the pattern if it doesn't already exist
+                            existingConfig.push(urlPattern);
+                            importedCount++;
                         }
                     }
-				}
-                
+                }
+
                 this.slickgrid.setData(existingConfig, false);
                 this.slickgrid.invalidateAllRows();
                 this.slickgrid.render();
-                
-                if (importedCount > 0)
+
+                if (importedCount > 0) {
                     await this.saveSettings();
-                
-                alert(`${importedCount} new record(s) imported`);
+                }
+
+                if (importedCount == 1) {
+                    alert(`1 new record imported`);
+                } else {
+                    alert(`${importedCount} new records imported`);
+                }
             }
-            catch(err) {
-                alert('Config was not in the correct format. Import failed!');
+            catch (error: any) {
+                const errorMessage = `Config was not in the correct format. Import failed!
+${error.message}`;
+                Logger.getInstance().logError(errorMessage);
+                alert(errorMessage);
             }
         });
 
@@ -270,87 +284,90 @@ export class OptionsJS {
                 var promptText = prompt("Warning: all saved settings will be deleted. Type 'delete all' below to confirm deletion:") || '';
                 if (promptText.toLowerCase().replaceAll("'", "") === "delete all") {
                     let storageApi = await StorageApiFactory.getStorageApi();
+
                     //This will essentially factory reset the extension, not just remove the urls but that's okay.
                     storageApi.clearAllSettings();
+
+                    Logger.getInstance().logWarning(`All settings cleared!`);
                     alert("All options cleared");
                     location.reload();
                 }
             }
-            catch {
+            catch (error: any) {
+                Logger.getInstance().logError(error.message);
                 alert("Something went wrong. Please try again.");
             }
         });
 
         //make slickgrid checkboxes more responsive
-        $('#body').on('blur', 'input.editor-checkbox', function() {
+        $('#body').on('blur', 'input.editor-checkbox', function () {
             Slick.GlobalEditorLock.commitCurrentEdit();
         });
     }
 
     private async saveSettings(): Promise<void> {
-        try
-        {   
+        try {
             let storageApi = await StorageApiFactory.getStorageApi();
             let rawOptions = <UrlPattern[]>this.slickgrid?.getData();
-            await storageApi.saveSettings(rawOptions);
+            await storageApi.saveSettings(rawOptions, true);
         }
-        catch(err: any)
-        {
-            console.error(`Tab Close Gold - Error while saving changes: ${err.message}`);
-            alert("Could not save configuration!");
+        catch (error: any) {
+            const errorMessage = `Could not save configurations.
+${error.message}`;
+            Logger.getInstance().logError(errorMessage);
+            alert(errorMessage);
         }
-	}
+    }
 
     private async updateStorageUsageProgressBar(storageType?: ChromeStorageType): Promise<void> {
         let storageApi = await StorageApiFactory.getStorageApi(storageType);
         let storageUsage = await storageApi.getStorageUsage();
-		var percentageText = storageUsage.percentage.toFixed(2) + '%';
-        
+        var percentageText = storageUsage.percentage.toFixed(2) + '%';
+
         $('#storage-usage-progress-bar')
             .prop('max', storageUsage.maxBytes)
             .prop('value', storageUsage.bytesUsed)
             .text(percentageText);
         $('#storage-usage-percentage-text').text(percentageText);
-	}
+    }
 
     private populateGrid(selector: string, rows: Array<any>, columns: Slick.Column<any>[], gridOptions: Slick.GridOptions<any>): void {
-		this.slickgrid = new Slick.Grid(selector, rows, columns, gridOptions);
-		this.slickgrid.onClick.subscribe(async (e, args) => {
-			try
-			{
-				if (args.grid.getColumns()[args.cell].id === "hitHistory") {
+        this.slickgrid = new Slick.Grid(selector, rows, columns, gridOptions);
+        this.slickgrid.onClick.subscribe(async (e, args) => {
+            try {
+                if (args.grid.getColumns()[args.cell].id === "hitHistory") {
                     let lastHits = args.grid.getData()[args.row].lastHits as string[];
                     let message = "Not hit yet!";
-					if (Array.isArray(lastHits) && lastHits.length > 0) {
+                    if (Array.isArray(lastHits) && lastHits.length > 0) {
                         let messageBuilder = [`Showing last ${UrlPattern.LAST_HIT_HISTORY_COUNT} hits (most recent first)`];
                         console.log(`Printing hits for pattern: ${args.grid.getData()[args.row].pattern}`);
                         let index = 1;
-						for (let i = lastHits.length - 1; i >= 0; i--) {
+                        for (let i = lastHits.length - 1; i >= 0; i--) {
                             //Trim the url so it fits in the alery box
                             const maxUrlLength = 60;
-                            let lastHitTrimmed = lastHits[i].length > maxUrlLength ? 
-                                lastHits[i].substring(0, maxUrlLength - 3) + "..." 
+                            let lastHitTrimmed = lastHits[i].length > maxUrlLength ?
+                                lastHits[i].substring(0, maxUrlLength - 3) + "..."
                                 : lastHits[i];
                             messageBuilder.push(`${index}. ${lastHitTrimmed}`);
 
                             //incase urls are really long, let users at least be able to check F12 console
-                            console.log(`${index}. ${lastHits[i]}`); 
-                            
+                            console.log(`${index}. ${lastHits[i]}`);
+
                             index++;
                         }
                         messageBuilder.push(""); //empty line 
                         messageBuilder.push("Note: Check F12 console for full urls if trimmed");
                         message = messageBuilder.join("\r\n");
                     }
-					alert(message);
-				} else if (args.grid.getColumns()[args.cell].id === "delete") {
+                    alert(message);
+                } else if (args.grid.getColumns()[args.cell].id === "delete") {
                     if (confirm("Are you sure you want to delete?")) {
                         args.grid.getData().splice(args.row, 1);
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                         await this.saveSettings();
                     }
-				} else if (args.grid.getColumns()[args.cell].id === "resethits") {
+                } else if (args.grid.getColumns()[args.cell].id === "resethits") {
                     if (confirm("Are you sure you want to reset hits?")) {
                         args.grid.getData()[args.row].hitCount = 0;
                         args.grid.getData()[args.row].lastHits = [];
@@ -359,10 +376,10 @@ export class OptionsJS {
                         this.slickgrid!.render();
                         await this.saveSettings();
                     }
-				} else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
-                    let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ? 
+                } else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
+                    let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ?
                         args.grid.getData()[args.row].delayInMs : 1000;
-                    let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`, 
+                    let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`,
                         currentDelay.toString());
                     let delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, parseInt(delay));
                     if (delayInMs >= 0) {
@@ -372,13 +389,13 @@ export class OptionsJS {
                         this.slickgrid!.render();
                     }
                 }
-			} 
-			catch (err: any) {
-				console.log(err && err.message);
-			}
-		});
-		
-		this.slickgrid.onSort.subscribe((e, args) => {
+            }
+            catch (error: any) {
+                Logger.getInstance().logError('An error occurred while populating the grid: ' + error.message);
+            }
+        });
+
+        this.slickgrid.onSort.subscribe((e, args) => {
             var col = args.sortCol;
             rows.sort(function (dataRow1, dataRow2) {
                 var field = col!.field;
@@ -386,55 +403,55 @@ export class OptionsJS {
                 var value1 = dataRow1[field!], value2 = dataRow2[field!];
                 var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
                 if (result != 0) {
-                  return result;
+                    return result;
                 }
                 return 0;
             });
             this.slickgrid!.invalidate();
             this.slickgrid!.render();
-		});
-		
-		this.slickgrid.onAddNewRow.subscribe(async (e, args) => {
-			var newRow = args.item;
-			newRow.enabled = true;
-			newRow.isRegex = false;
-			newRow.hitCount = 0;
-			newRow.lastHits = [];
-			
-			args.grid.getData().splice(args.grid.getDataLength(), 1, newRow);
-			args.grid.invalidateRow(args.grid.getDataLength() - 1);
-			args.grid.updateRowCount();
-			args.grid.render();
-			
-			await this.saveSettings();
-		});
-		
-		this.slickgrid.onCellChange.subscribe(async (e, args) => {
+        });
+
+        this.slickgrid.onAddNewRow.subscribe(async (e, args) => {
+            var newRow = args.item;
+            newRow.enabled = true;
+            newRow.isRegex = false;
+            newRow.hitCount = 0;
+            newRow.lastHits = [];
+
+            args.grid.getData().splice(args.grid.getDataLength(), 1, newRow);
+            args.grid.invalidateRow(args.grid.getDataLength() - 1);
+            args.grid.updateRowCount();
+            args.grid.render();
+
+            await this.saveSettings();
+        });
+
+        this.slickgrid.onCellChange.subscribe(async (e, args) => {
             args.item.pattern = args.item.pattern && args.item.pattern.trim();
-			if (args.item.pattern && args.item.isRegex) {
-				try {
-					new RegExp(args.item.pattern);
-				} catch(ex) {
-					alert("Your pattern is not a valid regex!");
-                    args.grid.flashCell(args.row, 
-                        args.grid.getColumns().findIndex(c => c.id === "pattern"), 
+            if (args.item.pattern && args.item.isRegex) {
+                try {
+                    new RegExp(args.item.pattern);
+                } catch (error) {
+                    alert("Your pattern is not a valid regex!");
+                    args.grid.flashCell(args.row,
+                        args.grid.getColumns().findIndex(c => c.id === "pattern"),
                         200);
                     return;
-				}
-			} else if (!args.item.pattern) {
+                }
+            } else if (!args.item.pattern) {
                 alert("You cannot leave the URL Search Pattern empty.");
-                args.grid.flashCell(args.row, 
-                    args.grid.getColumns().findIndex(c => c.id === "pattern"), 
+                args.grid.flashCell(args.row,
+                    args.grid.getColumns().findIndex(c => c.id === "pattern"),
                     200);
                 return;
             }
             await this.saveSettings();
-		});
-	}
+        });
+    }
 }
 
 //equivalent to $(document).ready(...)
-$(function() {
+$(function () {
     new OptionsJS().init();
 });
 

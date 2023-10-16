@@ -69,44 +69,50 @@ export class Logger {
     }
 
     private async flush(): Promise<void> {
+        if (this.queue.isEmpty()) {
+            return;
+        }
+        
         clearInterval(this.intervalId);
 
         try {
-            const storageUsage = await this.sessionLogger.getStorageUsage();
+            try {
+                const storageUsage = await this.sessionLogger.getStorageUsage();
 
-            let logs = await this.sessionLogger.GetByKey(Logger.SESSION_LOGS_KEY) as CircularLogBuffer<LogRecord>;
-            logs = Object.assign(new CircularLogBuffer<LogRecord>(0), logs); //We need to do this so we have the push() method available
+                let logs = await this.sessionLogger.GetByKey(Logger.SESSION_LOGS_KEY) as CircularLogBuffer<LogRecord>;
+                logs = Object.assign(new CircularLogBuffer<LogRecord>(0), logs); //We need to do this so we have the push() method available
 
-            //Check if we need to downsize due to storage issues
-            const isTakingTooMuchSpace = storageUsage.percentage >= 90 && logs.getBufferSize() > 1000 /* always keep some logs */
-            const hasFailedToSyncTooManyTimes = this.syncFailureCount >= Logger.SYNC_FAILURE_THRESHOLD;
-            if (isTakingTooMuchSpace || hasFailedToSyncTooManyTimes) {
-                logs = new CircularLogBuffer<LogRecord>(logs.getBufferSize() / 2);
-            }
-
-            let counter = 0;
-            while (!this.queue.isEmpty() && counter < Logger.LOGS_PER_SYNC_BATCH_SIZE) {
-                counter++;
-                let logRecord = this.queue.dequeue();
-                if (logRecord) {
-                    logs.push(logRecord);
+                //Check if we need to downsize due to storage issues
+                const isTakingTooMuchSpace = storageUsage.percentage >= 90 && logs.getBufferSize() > 1000 /* always keep some logs */
+                const hasFailedToSyncTooManyTimes = this.syncFailureCount >= Logger.SYNC_FAILURE_THRESHOLD;
+                if (isTakingTooMuchSpace || hasFailedToSyncTooManyTimes) {
+                    logs = new CircularLogBuffer<LogRecord>(logs.getBufferSize() / 2);
                 }
+
+                let counter = 0;
+                while (!this.queue.isEmpty() && counter < Logger.LOGS_PER_SYNC_BATCH_SIZE) {
+                    counter++;
+                    let logRecord = this.queue.dequeue();
+                    if (logRecord) {
+                        logs.push(logRecord);
+                    }
+                }
+
+                this.sessionLogger.SetByKey(Logger.SESSION_LOGS_KEY, logs);
+                this.syncFailureCount = 0;
+            } catch (error: any) {
+                this.syncFailureCount++;
+                console.error(error.message);
             }
 
-            this.sessionLogger.SetByKey(Logger.SESSION_LOGS_KEY, logs);
-            this.syncFailureCount = 0;
-        } catch (error: any) {
-            this.syncFailureCount++;
-            console.error(error.message);
+            if (this.syncFailureCount > Logger.SYNC_FAILURE_THRESHOLD * 2) {
+                //Try something drastic. Not sure if we'll ever get to this state but just want to be extra safe
+                await this.sessionLogger.clearAllSettings();
+                console.error("Tab Close Gold - Logging doesn't seem to be working correctly. Please try restarting your browser.");
+            }
+        } finally {
+            this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
         }
-
-        if (this.syncFailureCount > Logger.SYNC_FAILURE_THRESHOLD * 2) {
-            //Try something drastic. Not sure if we'll ever get to this state but just want to be extra safe
-            await this.sessionLogger.clearAllSettings();
-            console.error("Tab Close Gold - Logging doesn't seem to be working correctly. Please try restarting your browser.");
-        }
-
-        this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
     }
 }
 

@@ -87,7 +87,7 @@ export class PopupJS {
             newConfig.lastHitOn = new Date();
 
             configs.push(newConfig);
-            await storageApi.saveSettings(configs);
+            await storageApi.saveSettings(configs, true);
             let tabs = await browser.tabs.query({ windowType:'normal' });
             if (tabs.length === 1) {
                 //If this is the only tab, lets not close the tab in order to prevent an infinite loop which can happen in rare cases

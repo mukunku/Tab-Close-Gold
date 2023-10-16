@@ -5,7 +5,7 @@ import { LocalStorageApi } from "./storage-api.local";
 import { SessionStorageApi } from "./storage-api.session";
 
 export class StorageApiFactory {
-    static async getStorageApi(storageType?: ChromeStorageType): Promise<StorageApi> {
+    public static async getStorageApi(storageType?: ChromeStorageType): Promise<StorageApi> {
         let _storageType =  storageType || await StorageApi.getUserStorageType();
         
         if (_storageType === ChromeStorageType.Cloud)

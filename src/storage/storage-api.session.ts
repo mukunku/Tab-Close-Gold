@@ -1,24 +1,21 @@
-import { ChromeStorageType } from "./chrome-storage-types";
 import { StorageApi } from "./storage-api";
 import { StorageUsage } from "./storage-usage";
 import { UrlPattern } from "./url-pattern";
 import * as browser from "webextension-polyfill";
 import * as LZString from "lz-string";
-import { StorageApiFactory } from "./storage-api-factory";
+import { ChromeStorageType } from "./chrome-storage-types";
 
 export class SessionStorageApi extends StorageApi {
-    public async getSettings(): Promise<UrlPattern[]> {
-        let optionsRaw = await browser.storage.session.get(null);
-        return super.parseSettings(optionsRaw);
+    public storageType = ChromeStorageType.Session;
+
+    constructor() {
+        super(browser.storage.session);
     }
 
-    public async saveSettings(values: UrlPattern[]): Promise<void> {
-        if (!values)
-            return; // just in case
-        
+    public async saveSettingsImpl(values: UrlPattern[], additionalSettings?: Map<string, string>): Promise<any> {
         //No 'per-item' storage limitations in session storage so we can just dump it all into one item
-        var optionsRaw = {'config-1': LZString.compressToUTF16(JSON.stringify(values))};
-        await browser.storage.session.set(optionsRaw);
+        var optionsRaw = { 'config-1': LZString.compressToUTF16(JSON.stringify(values)) };
+        return optionsRaw;
     }
 
     public async getStorageUsage(): Promise<StorageUsage> {
@@ -37,31 +34,18 @@ export class SessionStorageApi extends StorageApi {
     }
 
     //No api to get bytes in use, so lets calculate it ourselves
-    public async calculateBytesInUse(): Promise<number> {
+    private async calculateBytesInUse(): Promise<number> {
         try {
             return new TextEncoder().encode(
                 Object.entries(await browser.storage.session.get(null))
-                .map(([key, value]) => key + JSON.stringify(value))
-                .join('')
+                    .map(([key, value]) => key + JSON.stringify(value))
+                    .join('')
             ).length;
-        } catch (error) {
-            console.log(error);
+        } catch (error: any) {
+            //Can't use Logger here due to circular reference
+            console.error('Error while calculating storage usage: ' + error.message);
             return 0;
         }
-    }
-
-    public async clearAllSettings(): Promise<void> {
-        await browser.storage.session.clear();
-    }
-    
-    public async saveSettingsRaw(settings: any): Promise<void> {
-        await browser.storage.session.set(settings);
-    }
-
-    protected async migrateSettings(newStorageType: ChromeStorageType): Promise<void> {
-        let newStorageApi = await StorageApiFactory.getStorageApi(newStorageType);
-		let allOptions = await browser.storage.session.get(null);
-		await newStorageApi.saveSettingsRaw(allOptions);
     }
 
     public async SetByKey(key: string, value: any): Promise<void> {
