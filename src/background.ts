@@ -121,6 +121,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 	}
 
 	try {
+		let haveSavedConfigsChanged = false;
 		for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
 			if (key === StorageApi.LAST_SAVE_DATE_KEY) {
 				//User changed something on the options page. Tell the syncer to refresh configs.
@@ -128,11 +129,20 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 				periodicSettingSyncer.hasNewConfigs = true;
 			}
 
-			Logger.getInstance().logDebug(
-				`Storage key "${key}" in namespace "${namespace}" changed.` +
-				`Old value was "${oldValue?.toString().substring(0, 15)}", new value is "${newValue?.toString().substring(0, 15)}".`
-			);
+			if (key?.startsWith("config-")) {
+				haveSavedConfigsChanged = true;
+			} else {
+				Logger.getInstance().logDebug(
+					`Storage key "${key}" in namespace "${namespace}" changed. ` +
+					`Old value was "${oldValue?.toString().substring(0, 20)}", new value is "${newValue?.toString().substring(0, 20)}".`
+				);
+			}
 		}
+
+		if (haveSavedConfigsChanged) {
+			Logger.getInstance().logDebug(`Configurations updated in "${namespace}"`);
+		}
+
 	} catch (error: any) {
 		Logger.getInstance().logError(`Error in browser.storage.onChanged.addListener: ${error.message}`);
 	}
@@ -177,7 +187,6 @@ class PeriodicSettingSyncer {
 		clearInterval(this.intervalId!);
 
 		try {
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: Starting sync.");
 			let storageApi = await StorageApiFactory.getStorageApi();
 
 			if (this.hasNewConfigs) {
@@ -190,7 +199,7 @@ class PeriodicSettingSyncer {
 				this.configs = await storageApi.getSettings();
 
 				Logger.getInstance().logDebug(`PeriodicSettingSyncer: Option changes detected. Using latest settings from the options page. ` +
-					`Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms won't be recorded :(`);
+					`Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms won't be recorded.`);
 				return;
 			}
 
@@ -199,7 +208,7 @@ class PeriodicSettingSyncer {
 			await storageApi.saveSettings(this.configs, false);
 			this.syncFailureCount = 0;
 
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: Finished sync.");
+			Logger.getInstance().logDebug("PeriodicSettingSyncer: synced hit statistic changes.");
 		} catch (error: any) {
 			this.syncFailureCount++;
 
@@ -208,7 +217,7 @@ class PeriodicSettingSyncer {
 				Logger.getInstance().logError(`Settings haven't been saved for a while.` +
 					`Please export your configs to make sure you don't lose anything and restart your browser.`);
 			} else {
-				Logger.getInstance().logError(`Error while syncing configs:\n${error.message}`);
+				Logger.getInstance().logError(`PeriodicSettingSyncer: Error while syncing configs:\n${error.message}`);
 			}
 		} finally {
 			this.intervalId
