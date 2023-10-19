@@ -12,6 +12,7 @@ import './node_modules/slickgrid/slick.formatters';
 import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid';
 import { Logger } from "./helpers/logger";
+import { ModalWindow } from "./helpers/modal-window";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -158,6 +159,7 @@ export class OptionsJS {
     private readonly $importConfigButton = $('#importConfig');
     private readonly $configTextArea = $('#configTextArea');
     private readonly $deleteAllButton = $('#delete-all-button');
+    private readonly $showLogsButton = $('#show-logs-button');
     private slickgrid: Slick.Grid<UrlPattern> | null = null;
 
     public async init(): Promise<void> {
@@ -190,8 +192,6 @@ export class OptionsJS {
         ]); //show last hit first
 
         this.attachEvents();
-
-        this.$configTextArea.val(''); //clear input on refresh (for firefox)
     }
 
     private attachEvents(): void {
@@ -292,8 +292,7 @@ ${error.message}`;
                     alert("All options cleared");
                     location.reload();
                 }
-            }
-            catch (error: any) {
+            } catch (error: any) {
                 Logger.getInstance().logError(error.message);
                 alert("Something went wrong. Please try again.");
             }
@@ -302,6 +301,20 @@ ${error.message}`;
         //make slickgrid checkboxes more responsive
         $('#body').on('blur', 'input.editor-checkbox', function () {
             Slick.GlobalEditorLock.commitCurrentEdit();
+        });
+
+        this.$showLogsButton.on('click', async () => {
+            try {
+                new ModalWindow('logs-modal', {
+                    show: true, // Don't show the modal on creation
+                    mode: null, // Disable modal mode, allow click outside to close
+                    headerText: 'Hello World!',
+                    htmlContent: '<p>This is an example of the popup.</p>'
+                  });
+            } catch (error: any) {
+                Logger.getInstance().logError(error.message);
+                alert("Something went wrong. Please try again.");
+            }
         });
     }
 

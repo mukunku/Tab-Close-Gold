@@ -171,8 +171,9 @@ class PeriodicSettingSyncer {
 
 	public static async getInstance(): Promise<PeriodicSettingSyncer> {
 		if (!PeriodicSettingSyncer.instance) {
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: Creating new instance.");
 			PeriodicSettingSyncer.instance = new PeriodicSettingSyncer();
+			Logger.getInstance().logDebug("PeriodicSettingSyncer: Creating new instance.");
+			
 			await PeriodicSettingSyncer.instance.initialize();
 		}
 		return PeriodicSettingSyncer.instance;
@@ -198,8 +199,11 @@ class PeriodicSettingSyncer {
 				//config changes by the user in my opinion.
 				this.configs = await storageApi.getSettings();
 
-				Logger.getInstance().logDebug(`PeriodicSettingSyncer: Option changes detected. Using latest settings from the options page. ` +
-					`Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms won't be recorded.`);
+				let message = "PeriodicSettingSyncer: Option changes detected. Using latest settings from the options page. ";
+				if (this.hasNewHits) {
+					message += `Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms won't be recorded.`
+				}
+				Logger.getInstance().logDebug(message);
 				return;
 			}
 

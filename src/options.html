@@ -7,46 +7,51 @@
 	<title>Tab Close Gold - Options</title>
 </head>
 <body>
-<div id="main" class="center">
-	<div id="header">
-		<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!"/>
-		<span id="title">Tab Close Gold - Options</span>
-	</div>
-	<div class="floatLeft">
-		<b style="font-size: 18px; padding-left: 3px; top: 2px; position: relative;">*</b>
-		<span class="select-none"> = wild card. Example: </span><span>www.face*.com</span>
-	</div>
-	<div class="floatRight">
-		<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
-	</div>
-	<div id="body">
-	</div>
-	<div id="footer">
-		<div class="floatLeft">
-			<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
-				<!-- Lets hide the storage switcher for now. Maybe we can expose it to users later down the road -->
-				<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
-				<select id="storage-dropdown" class="flex-item" name="storage_option">
-					<option value="Cloud">Cloud</option>
-					<option value="Local">Local</option>
-				</select>
-				<span class="flex-item" id="storage-switch-message"></span>
-			</div>
-			<div class="flex-container" style="margin-top: 5px;">
-				<span>Storage usage: </span>
-				<progress id="storage-usage-progress-bar" value="0" max="100" class="flex-item" style="margin-left: 5px;"></progress>
-				<span id="storage-usage-percentage-text" class="flex-item" style="margin-left: 5px;">0%</span>
-			</div>
+	<div id="main" class="center">
+		<div id="header">
+			<img src="icon128.png" height="64" width="64" class="floatLeft" alt="Gold Team Rules!" />
+			<span id="title">Tab Close Gold - Options</span>
 		</div>
-		<div style="clear:both;" />
+		<div class="floatLeft">
+			<b style="font-size: 18px; padding-left: 3px; top: 2px; position: relative;">*</b>
+			<span class="select-none"> = wild card. Example: </span><span>www.face*.com</span>
+		</div>
+		<div class="floatRight">
+			<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
+		</div>
+		<div id="body">
+		</div>
+		<div id="footer">
+			<div class="floatLeft">
+				<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
+					<!-- Lets hide the storage switcher for now. Maybe we can expose it to users later down the road -->
+					<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
+					<select id="storage-dropdown" class="flex-item" name="storage_option">
+						<option value="Cloud">Cloud</option>
+						<option value="Local">Local</option>
+					</select>
+					<span class="flex-item" id="storage-switch-message"></span>
+				</div>
+				<div class="flex-container" style="margin-top: 5px;">
+					<span>Storage usage: </span>
+					<progress id="storage-usage-progress-bar" value="0" max="100" class="flex-item"
+						style="margin-left: 5px;"></progress>
+					<span id="storage-usage-percentage-text" class="flex-item" style="margin-left: 5px;">0%</span>
+				</div>
+			</div>
+			<div style="clear:both;" />
+			<button id="show-logs-button" class="floatRight">Logs</button>
+		</div>
+		<div id="configFooter">
+			<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5"
+				autocomplete="off" placeholder="Export will be shown here.
+Import will read from here."></textarea>
+			<input type="button" value="Export Configuration" id="exportConfig" style="height: 30px;"
+				class="floatLeft" />
+			<input type="button" value="Import Additional Configuration" id="importConfig" style="height: 30px;"
+				class="floatRight" />
+			<div style="clear:both;" />
+		</div>
 	</div>
-	<div id="configFooter">
-		<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5">Export will be shown here.
-Import will read from here.</textarea>
-		<input type="button" value="Export Configuration" id="exportConfig" style="height: 30px;" class="floatLeft"/>
-		<input type="button" value="Import Additional Configuration" id="importConfig" style="height: 30px;" class="floatRight"/>
-		<div style="clear:both;" />
-	</div>
-</div>
 </body>
 </html>

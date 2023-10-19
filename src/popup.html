@@ -1,58 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Tab Close Gold - Popup</title>
-<style>
-.menu,
-.sub-menu {
-  margin: 0;
-  padding: 0;
-}
-.sub-menu li {
-    margin: 0;
-}
+  <title>Tab Close Gold - Popup</title>
+  <style>
+    .menu,
+    .sub-menu {
+      margin: 0;
+      padding: 0;
+    }
 
-span,li {
-  display: block;
-}
+    .sub-menu li {
+      margin: 0;
+    }
 
-span {
-  text-decoration: none;
-  color: currentColor;
-  padding: 10px; 
-  user-select: none;
-  cursor: pointer;
-}
+    span,
+    li {
+      display: block;
+    }
 
-span:hover {
-  background-color: #bfbfbf;
-}
+    span {
+      text-decoration: none;
+      color: currentColor;
+      padding: 10px;
+      user-select: none;
+      cursor: pointer;
+    }
 
-li{
-  border-style: solid;
-  border-width: 1px;
-}
+    span:hover {
+      background-color: #bfbfbf;
+    }
 
-li:first-child {
-	border-bottom: 0;
-}
+    li {
+      border-style: solid;
+      border-width: 1px;
+    }
 
-.navigation {
-  line-height: 1;
-}
-body {
-  width: 200px;
-}
-</style>
+    li:first-child {
+      border-bottom: 0;
+    }
+
+    .navigation {
+      line-height: 1;
+    }
+
+    body {
+      width: 200px;
+    }
+  </style>
 </head>
 <body>
-<nav class="navigation">
-  <ul class="menu">
-    <li><span id="blacklist">Blacklist current site</span></li>
-    <li><span id="options">Options</span></li>
-  </ul>
-</nav>
-<!--leave scripts in the body-->
-<script src="./popup.bundle.js"></script>
+  <nav class="navigation">
+    <ul class="menu">
+      <li><span id="blacklist">Blacklist current site</span></li>
+      <li><span id="options">Options</span></li>
+    </ul>
+  </nav>
+  <!--leave scripts in the body-->
+  <script src="./popup.bundle.js"></script>
 </body>
-</html> 
+</html>
