@@ -13,6 +13,8 @@ import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid';
 import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
+import { Environment, RuntimeEnvironment } from "./helpers/env";
+import { SessionStorageApi } from "./storage/storage-api.session";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -362,6 +364,8 @@ ${error.message}`;
 
                 $('#log-level').on('change', async (event: any) => {
                     let minLogLevel = parseInt(event.target.value) as LogLevel;
+                    const sessionStorage = new SessionStorageApi();
+                    await sessionStorage.SetByKey('MIN_LOG_LEVEL', minLogLevel);
 
                     //Start over by getting a new iterator
                     const newLogIterator = await Logger.getLogsIterator(false);
@@ -373,10 +377,15 @@ ${error.message}`;
             }
 
             try {
-                //TODO: This logic needs to be improved. But this'll do for now.
+                //TODO: This log rendering logic needs to be improved. But this'll do for now.
+                const sessionStorage = new SessionStorageApi();
                 const maxLogCount = 5000; //hard code to match CircularLogBuffer constant
                 const logIterator = await Logger.getLogsIterator(false);
-                renderLogs(logIterator, maxLogCount, LogLevel.Debug);
+                
+                let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
+                const minLogLevel = userSelectedMinLogLevel 
+                    || (Environment.getEnvironment() === RuntimeEnvironment.Production ? LogLevel.Warning : LogLevel.Debug);
+                renderLogs(logIterator, maxLogCount, minLogLevel);
             } catch (error: any) {
                 const errorMessage = `Could not show logs.
 ${error.message}`;
