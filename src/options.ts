@@ -11,7 +11,7 @@ import './node_modules/slickgrid/lib/jquery.event.drop-2.3.0';
 import './node_modules/slickgrid/slick.formatters';
 import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid';
-import { Logger } from "./helpers/logger";
+import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
 
 export class OptionsJS {
@@ -274,7 +274,7 @@ export class OptionsJS {
             catch (error: any) {
                 const errorMessage = `Config was not in the correct format. Import failed!
 ${error.message}`;
-                Logger.getInstance().logError(errorMessage);
+                console.error(errorMessage);
                 alert(errorMessage);
             }
         });
@@ -288,13 +288,15 @@ ${error.message}`;
                     //This will essentially factory reset the extension, not just remove the urls but that's okay.
                     storageApi.clearAllSettings();
 
-                    Logger.getInstance().logWarning(`All settings cleared!`);
+                    //TODO: Logger is not thread-safe. So we can only have one writer in the entire application
                     alert("All options cleared");
                     location.reload();
                 }
             } catch (error: any) {
-                Logger.getInstance().logError(error.message);
-                alert("Something went wrong. Please try again.");
+                const errorMessage = `Something went wrong:
+${error.message}`;
+                console.error(errorMessage);
+                alert(errorMessage);
             }
         });
 
@@ -303,17 +305,83 @@ ${error.message}`;
             Slick.GlobalEditorLock.commitCurrentEdit();
         });
 
-        this.$showLogsButton.on('click', async () => {
+        this.$showLogsButton.on('click', async (event) => {
+            let modal: ModalWindow | null = null;
+
+            function renderLogs(iterator: Generator<LogRecord>, take: number, minLogLevel: LogLevel): boolean {
+                if (isNaN(take) || take <= 0) {
+                    throw new Error(`'take' must be a positive number`);
+                }
+
+                let logRecords: LogRecord[] = [];
+                let iteration: IteratorResult<LogRecord, any> | null = null;
+                while (take > 0 && (iteration = iterator.next()) && !iteration.done) {
+                    let logRecord = LogRecord.instantiate(iteration.value);
+
+                    if (logRecord.type < minLogLevel) {
+                        continue;
+                    }
+
+                    logRecords.push(logRecord);
+                    take--;
+                }
+
+                //Data isn't chronologically sorted unfortunately. So we sort it here.
+                logRecords = logRecords.sort( //desc
+                    (a: LogRecord, b: LogRecord) => a.date == b.date ? 0 : (a.date > b.date ? -1 : 1)
+                );
+
+                const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
+                const recordCount = logRecords.length;
+                const $bodyContent = $(`<div style="font-family: monospace; max-height: 512px; text-wrap: wrap; overflow: auto;">${html|| '<p>No logs yet.</p>'}</div>`);
+                const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
+                        <div style="width: 20%;">Showing last ${recordCount} log${recordCount == 1 ? '' : 's'}</div>
+                        <div style="width: 20%;">
+                            <label for="log-level">Log Level:</label>
+                            <select name="log-level" id="log-level">
+                                <option value="1">Trace</option>
+                                <option value="2">Debug</option>
+                                <option value="4">Warning</option>
+                                <option value="8">Error</option>
+                            </select>
+                        </div>
+                    </div>`);
+
+                $headerContent.find('#log-level').val(minLogLevel);
+
+                if (!modal) {
+                    modal = new ModalWindow('logs-modal', {
+                        show: true,
+                        mode: null, // Disable modal mode, allow click outside to close
+                        headerContent: $headerContent,
+                        htmlContent: $bodyContent
+                    }); //just creating the object will create the modal
+                } else {
+                    modal.initialize($headerContent, $bodyContent);
+                }
+
+                $('#log-level').on('change', async (event: any) => {
+                    let minLogLevel = parseInt(event.target.value) as LogLevel;
+
+                    //Start over by getting a new iterator
+                    const newLogIterator = await Logger.getLogsIterator(false);
+                    renderLogs(newLogIterator, take, minLogLevel);
+                });
+
+                const isEndOfLogs = !!iteration?.done;
+                return isEndOfLogs;
+            }
+
             try {
-                new ModalWindow('logs-modal', {
-                    show: true, // Don't show the modal on creation
-                    mode: null, // Disable modal mode, allow click outside to close
-                    headerText: 'Hello World!',
-                    htmlContent: '<p>This is an example of the popup.</p>'
-                  });
+                //TODO: This logic needs to be improved. But this'll do for now.
+                const maxLogCount = 5000; //hard code to match CircularLogBuffer constant
+                const logIterator = await Logger.getLogsIterator(false);
+                renderLogs(logIterator, maxLogCount, LogLevel.Debug);
             } catch (error: any) {
-                Logger.getInstance().logError(error.message);
-                alert("Something went wrong. Please try again.");
+                const errorMessage = `Could not show logs.
+${error.message}`;
+                console.error(errorMessage);
+                alert(errorMessage);
             }
         });
     }
@@ -327,7 +395,7 @@ ${error.message}`;
         catch (error: any) {
             const errorMessage = `Could not save configurations.
 ${error.message}`;
-            Logger.getInstance().logError(errorMessage);
+            console.error(errorMessage);
             alert(errorMessage);
         }
     }
@@ -404,7 +472,10 @@ ${error.message}`;
                 }
             }
             catch (error: any) {
-                Logger.getInstance().logError('An error occurred while populating the grid: ' + error.message);
+                const errorMessage = `An error occurred while populating the grid:
+${error.message}`;
+                console.error(errorMessage);
+                alert(errorMessage);
             }
         });
 

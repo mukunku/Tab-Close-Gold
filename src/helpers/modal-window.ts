@@ -32,12 +32,12 @@ export class ModalWindow {
         this.addEventHandlers();
         this.afterRender();
     }
-    initialize() {
-        if (this.opts.headerText) {
-            this.query('.md-dialog-header-text').text(this.opts.headerText);
+    initialize(headerContent: any = null, bodyContent: any = null) {
+        if (headerContent || this.opts.headerContent) {
+            this.query('.md-dialog-header-text').html(headerContent || this.opts.headerContent);
         }
-        if (this.opts.htmlContent) {
-            this.query('.md-dialog-content').html(this.opts.htmlContent);
+        if (bodyContent || this.opts.htmlContent) {
+            this.query('.md-dialog-content').html(bodyContent || this.opts.htmlContent);
         } else if (this.opts.textContent) {
             this.query('.md-dialog-content').text(this.opts.textContent);
         }
@@ -57,12 +57,12 @@ export class ModalWindow {
             });
         }
     }
-    afterRender() {
+    afterRender(): void {
         if (this.opts.show === true) {
             this.setVisible(true);
         }
     }
-    setVisible(visible: boolean) {
+    setVisible(visible: boolean): void {
         this.modal.toggleClass('md-dialog-visible', visible);
         if (visible) {
             this.onOpen() // class method override or callback (below)

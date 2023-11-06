@@ -117,12 +117,6 @@ classes should alter those!
   to { box-shadow: none; }
 }
 
-
-* {
-  font-family: arial;
-  font-size: 8pt;
-}
-
 h2 {
   font-size: 10pt;
   border-bottom: 1px dotted gray;

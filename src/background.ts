@@ -116,7 +116,7 @@ async function closeTheTab(tabId: number) {
 }
 
 browser.storage.onChanged.addListener(async (changes, namespace) => {
-	if (namespace === "session") {
+	if (namespace !== "sync") {
 		return;
 	}
 
@@ -172,7 +172,7 @@ class PeriodicSettingSyncer {
 	public static async getInstance(): Promise<PeriodicSettingSyncer> {
 		if (!PeriodicSettingSyncer.instance) {
 			PeriodicSettingSyncer.instance = new PeriodicSettingSyncer();
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: Creating new instance.");
+			Logger.getInstance().logTrace("PeriodicSettingSyncer: Creating new instance.");
 			
 			await PeriodicSettingSyncer.instance.initialize();
 		}
@@ -203,7 +203,7 @@ class PeriodicSettingSyncer {
 				if (this.hasNewHits) {
 					message += `Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms won't be recorded.`
 				}
-				Logger.getInstance().logDebug(message);
+				Logger.getInstance().logTrace(message);
 				return;
 			}
 
@@ -212,7 +212,7 @@ class PeriodicSettingSyncer {
 			await storageApi.saveSettings(this.configs, false);
 			this.syncFailureCount = 0;
 
-			Logger.getInstance().logDebug("PeriodicSettingSyncer: saved updated hit statistic.");
+			Logger.getInstance().logTrace("PeriodicSettingSyncer: saved updated hit statistic.");
 		} catch (error: any) {
 			this.syncFailureCount++;
 

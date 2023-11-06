@@ -42,8 +42,24 @@ export class LocalStorageApi extends StorageApi {
                 .join('')
             ).length;
         } catch (error: any) {
-            Logger.getInstance().logError('Error while calculating storage usage: ' + error.message);
+            console.error(error.message);
             return 0;
+        }
+    }
+
+    public SetByKey(key: string, value: any): Promise<void> {
+        var keyValue = {} as any;
+        keyValue[key] = value;
+        return browser.storage.local.set(keyValue);
+    }
+
+    public async GetByKey(key: string | null): Promise<any> {
+        let value: Record<string, any> = await browser.storage.local.get(key);
+
+        if (key == null) {
+            return value;
+        } else {
+            return value[key];
         }
     }
 }

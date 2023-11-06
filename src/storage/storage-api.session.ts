@@ -55,7 +55,7 @@ export class SessionStorageApi extends StorageApi {
     }
 
     public async GetByKey(key: string): Promise<any> {
-        let value = browser.storage.session.get(key);
-        return value;
+        let value: Record<string, any> = await browser.storage.session.get(key);
+        return value[key];
     }
 }

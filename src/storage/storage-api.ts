@@ -25,6 +25,9 @@ export abstract class StorageApi {
     public abstract saveSettingsImpl(values: UrlPattern[], additionalSettings?: Map<string, string>): Promise<any>; //no private abstract in typescript
     public abstract getStorageUsage(): Promise<StorageUsage>;
 
+    public abstract SetByKey(key: string, value: any): Promise<void>;
+    public abstract GetByKey(key: string): Promise<any>;
+
     public async getSettings(): Promise<UrlPattern[]> {
         let optionsRaw = await this.browserStorageArea.get(null);
         return this.parseSettings(optionsRaw);

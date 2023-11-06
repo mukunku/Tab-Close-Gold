@@ -1,7 +1,12 @@
 html {
-	font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+	font-family: Arial, sans-serif;
 	background-image: url("./images/noise.png");
     background-repeat: repeat;
+	font-size: 14px;
+}
+
+input {
+	font-size: 12px;
 }
 
 body {
@@ -93,11 +98,10 @@ div:not(.new-row) > .r3.slick-cell:empty {
 	margin-left: 61px;
 	content: 'click to add';
 	font-style: italic;
-	font-size: 8px;
+	font-size: 12px;
 	line-height: 24px;
 	opacity: 50%;
 }
-
 
 /*Modal CSS Start*/
 .md-dialog {
@@ -139,8 +143,9 @@ div:not(.new-row) > .r3.slick-cell:empty {
 	width: 0.875em;
 	height: 0.875em;
 	line-height: 1em;
-	padding: 0.1em;
-	color: #7F7F7F;
+	padding: 0.3em;
+	color: #727272;
+	font-size: 16px;
   }
   .md-dialog .md-dialog-header-close-btn:before {
 	content: '\2715';

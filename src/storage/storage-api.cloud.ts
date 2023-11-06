@@ -48,4 +48,15 @@ export class CloudStorageApi extends StorageApi {
 		}
 		return config;
 	}
+
+	public async SetByKey(key: string, value: any): Promise<void> {
+        var keyValue = {} as any;
+        keyValue[key] = value;
+        return browser.storage.sync.set(keyValue);
+    }
+
+    public async GetByKey(key: string): Promise<any> {
+        let value: Record<string, any> = await browser.storage.sync.get(key);
+        return value[key];
+    }
 }
