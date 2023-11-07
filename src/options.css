@@ -1,7 +1,7 @@
 html {
 	font-family: Arial, sans-serif;
 	background-image: url("./images/noise.png");
-    background-repeat: repeat;
+	background-repeat: repeat;
 	font-size: 14px;
 }
 
@@ -14,10 +14,10 @@ body {
 }
 
 #main {
-	width : 900px;
+	width: 900px;
 	border: 3px solid silver;
 	background: white;
-	
+
 }
 
 #header {
@@ -40,14 +40,14 @@ body {
 }
 
 #title {
-	line-height:64px; 
-	font-size: 2vw; 
+	line-height: 64px;
+	font-size: 2vw;
 	margin-left: 10px;
 }
 
 .center {
-    margin: auto;
-    padding: 10px;
+	margin: auto;
+	padding: 10px;
 }
 
 .centerText {
@@ -74,24 +74,24 @@ body {
 	background: 0;
 }
 
-div:not(.new-row) > .r0.slick-cell:empty {
+div:not(.new-row)>.r0.slick-cell:empty {
 	background-image: url(./images/no_tick.png);
 	background-repeat: no-repeat;
 	background-position: top 3px left 20px;
 }
 
-div:not(.new-row) > .r3.slick-cell:empty {
+div:not(.new-row)>.r3.slick-cell:empty {
 	background-image: url(./images/no_tick.png);
 	background-repeat: no-repeat;
 	background-position: top 3px left 20px;
 }
 
 .flex-container {
-  display: flex;
+	display: flex;
 }
 
 .select-none {
-  user-select: none;
+	user-select: none;
 }
 
 .new-row::after {
@@ -115,17 +115,20 @@ div:not(.new-row) > .r3.slick-cell:empty {
 	overflow: auto;
 	background-color: rgb(0, 0, 0);
 	background-color: rgba(0, 0, 0, 0.4);
-  }
-  .md-dialog.md-dialog-visible {
+}
+
+.md-dialog.md-dialog-visible {
 	display: block;
-  }
-  .md-dialog .md-dialog-window {
+}
+
+.md-dialog .md-dialog-window {
 	border: 1px solid #888;
 	background-color: #fefefe;
 	width: 80%;
 	margin: 10% auto;
-  }
-  .md-dialog .md-dialog-header {
+}
+
+.md-dialog .md-dialog-header {
 	position: relative;
 	width: calc(100% - 0.5em);
 	height: 1.667em;
@@ -134,8 +137,9 @@ div:not(.new-row) > .r3.slick-cell:empty {
 	line-height: 1.667em;
 	padding: 0.125em 0.25em;
 	background-color: #DDD;
-  }
-  .md-dialog .md-dialog-header-close-btn {
+}
+
+.md-dialog .md-dialog-header-close-btn {
 	position: absolute;
 	font-weight: bold;
 	top: 0;
@@ -146,19 +150,36 @@ div:not(.new-row) > .r3.slick-cell:empty {
 	padding: 0.3em;
 	color: #727272;
 	font-size: 16px;
-  }
-  .md-dialog .md-dialog-header-close-btn:before {
+}
+
+.md-dialog .md-dialog-header-close-btn:before {
 	content: '\2715';
-  }
-  .md-dialog .md-dialog-header-close-btn:hover,
-  .md-dialog .md-dialog-header-close-btn:focus {
+}
+
+.md-dialog .md-dialog-header-close-btn:hover,
+.md-dialog .md-dialog-header-close-btn:focus {
 	color: #FFF;
 	text-decoration: none;
 	cursor: pointer;
 	background: #F00;
-  }
-  .md-dialog .md-dialog-content {
+}
+
+.md-dialog .md-dialog-content {
 	width: 100%;
 	padding: 0.25em;
-  }
-  /*Modal CSS End*/
+}
+
+/*Modal CSS End*/
+
+.context-menu {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 500px;
+	width: 400px;
+	background-color: #fff;
+	border: 1px solid #000;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+	overflow: auto;
+	z-index: 1000;
+}

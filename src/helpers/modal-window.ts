@@ -1,6 +1,6 @@
 export class ModalWindow {
-    private static readonly modalHtml: string = 
-    `<div id="$id" class="md-dialog">
+    private static readonly modalHtml: string =
+        `<div id="$id" class="md-dialog">
         <div class="md-dialog-window">
             <div class="md-dialog-header">
                 <div class="md-dialog-header-close-btn"></div>
@@ -27,7 +27,7 @@ export class ModalWindow {
         $('body').append($html);
 
         this.opts = Object.assign({}, ModalWindow._defaultOptions, options || {});
-        this.modal = $(this.opts.selector);
+        this.modal = $html;
         this.initialize();
         this.addEventHandlers();
         this.afterRender();
@@ -46,16 +46,15 @@ export class ModalWindow {
         }
     }
     addEventHandlers() {
-        this.query('.md-dialog-header-close-btn').on('click', (e: any) => {
+        this.query('.md-dialog-header-close-btn').on('click', (_: any) => {
             this.setVisible(false);
         });
-        if (this.opts.mode !== 'modal') {
-            this.modal.on('click', (e: any) => {
-                if (e.target === this.modal) {
-                    this.setVisible(false);
-                }
-            });
-        }
+
+        $(window).on('keyup', (event: any) => {
+            if (event.key === "Escape") {
+                this.setVisible(false);
+            }
+        });
     }
     afterRender(): void {
         if (this.opts.show === true) {
@@ -63,24 +62,14 @@ export class ModalWindow {
         }
     }
     setVisible(visible: boolean): void {
-        this.modal.toggleClass('md-dialog-visible', visible);
         if (visible) {
-            this.onOpen() // class method override or callback (below)
-            if (typeof this.opts.onOpen === 'function') {
-                this.opts.onOpen(this.modal);
-            }
+            this.modal.toggleClass('md-dialog-visible', true);
         } else {
-            this.onClose() // class method override or callback (below)
-            if (typeof this.opts.onClose === 'function') {
-                this.opts.onClose(this.modal);
-            }
+            this.modal.remove();
+            $(window).off('keyup');
         }
     }
     query(childSelector: string) {
         return this.modal.find(childSelector);
     }
-
-    // Example hooks
-    onOpen() { }
-    onClose() { }
 }

@@ -15,6 +15,7 @@ import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
 import { Environment, RuntimeEnvironment } from "./helpers/env";
 import { SessionStorageApi } from "./storage/storage-api.session";
+import { CheckboxOption, ContextMenu, DropdownOption } from "./helpers/context-menu";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -31,7 +32,7 @@ export class OptionsJS {
             width: 60
         },
         {
-            name: "URL Search Pattern",
+            name: "Search Pattern",
             field: "pattern",
             id: "pattern",
             sortable: true,
@@ -47,14 +48,14 @@ export class OptionsJS {
             resizable: false,
             formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
                 if (!value || value <= 0) {
-                    return '<img src="./images/stopwatch-inactive.png">';
+                    return '<img style="cursor: pointer;" src="./images/stopwatch-inactive.png">';
                 } else {
-                    return '<img src="./images/stopwatch-active.png">';
+                    return '<img style="cursor: pointer;" src="./images/stopwatch-active.png">';
                 }
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText pointer",
+            cssClass: "centerText",
             width: 60
         },
         {
@@ -116,7 +117,7 @@ export class OptionsJS {
             focusable: false,
             cssClass: "centerText",
             width: 130
-        },
+        }, 
         {
             name: "Delete",
             field: "delete",
@@ -130,7 +131,7 @@ export class OptionsJS {
             focusable: false,
             cssClass: "centerText pointer underline",
             width: 60
-        },
+        }, 
         {
             name: "Reset Hits",
             field: "resethits",
@@ -143,6 +144,20 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "centerText pointer underline",
+            width: 60
+        }, 
+        {
+            name: "Settings",
+            field: "settings",
+            id: "settings",
+            sortable: false,
+            resizable: false,
+            formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
+                return '<img style="cursor: pointer;" src="./images/gear-icon.png">';
+            },
+            cannotTriggerInsert: true,
+            focusable: false,
+            cssClass: "centerText",
             width: 60
         }
     ];
@@ -174,7 +189,7 @@ export class OptionsJS {
         await this.updateStorageUsageProgressBar(storageType);
 
         //Populate the slickgrid
-        let urlPatterns = await (await StorageApiFactory.getStorageApi()).getSettings();
+        let urlPatterns: UrlPattern[] = await (await StorageApiFactory.getStorageApi()).getSettings();
 
         //sort by Last Hit On desc
         urlPatterns.sort((pattern1, pattern2) => {
@@ -328,14 +343,14 @@ ${error.message}`;
                     take--;
                 }
 
-                //Data isn't chronologically sorted unfortunately. So we sort it here.
+                //Data isn't exactly chronologically sorted due to race conditions. So we sort it here.
                 logRecords = logRecords.sort( //desc
                     (a: LogRecord, b: LogRecord) => a.date == b.date ? 0 : (a.date > b.date ? -1 : 1)
                 );
 
                 const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
                 const recordCount = logRecords.length;
-                const $bodyContent = $(`<div style="font-family: monospace; max-height: 512px; text-wrap: wrap; overflow: auto;">${html|| '<p>No logs yet.</p>'}</div>`);
+                const $bodyContent = $(`<div style="font-family: monospace; max-height: 512px; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
                 const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
                         <div style="width: 20%;">Showing last ${recordCount} log${recordCount == 1 ? '' : 's'}</div>
                         <div style="width: 20%;">
@@ -381,9 +396,9 @@ ${error.message}`;
                 const sessionStorage = new SessionStorageApi();
                 const maxLogCount = 5000; //hard code to match CircularLogBuffer constant
                 const logIterator = await Logger.getLogsIterator(false);
-                
+
                 let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
-                const minLogLevel = userSelectedMinLogLevel 
+                const minLogLevel = userSelectedMinLogLevel
                     || (Environment.getEnvironment() === RuntimeEnvironment.Production ? LogLevel.Warning : LogLevel.Debug);
                 renderLogs(logIterator, maxLogCount, minLogLevel);
             } catch (error: any) {
@@ -423,7 +438,7 @@ ${error.message}`;
 
     private populateGrid(selector: string, rows: Array<any>, columns: Slick.Column<any>[], gridOptions: Slick.GridOptions<any>): void {
         this.slickgrid = new Slick.Grid(selector, rows, columns, gridOptions);
-        this.slickgrid.onClick.subscribe(async (e, args) => {
+        this.slickgrid.onClick.subscribe(async (event, args) => {
             try {
                 if (args.grid.getColumns()[args.cell].id === "hitHistory") {
                     let lastHits = args.grid.getData()[args.row].lastHits as string[];
@@ -478,6 +493,15 @@ ${error.message}`;
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                     }
+                } else if (args.grid.getColumns()[args.cell].id === "settings") {
+                    const checkbox1 = new CheckboxOption("Checked", true);
+                    const checkbox2 = new CheckboxOption("Unchecked", false);
+                    const dropdown = new DropdownOption(["1", "2", "3"], "2");
+
+                    const $clickedCell = $(args.grid.getCellNode(args.row, args.cell));
+                    const menu = new ContextMenu([checkbox1, checkbox2, dropdown]);
+                    menu.render($clickedCell);
+                    event.stopPropagation(); //don't trigger onclick handlers we attach in ContextMenu
                 }
             }
             catch (error: any) {
@@ -532,7 +556,7 @@ ${error.message}`;
                     return;
                 }
             } else if (!args.item.pattern) {
-                alert("You cannot leave the URL Search Pattern empty.");
+                alert("You cannot leave the Search Pattern empty.");
                 args.grid.flashCell(args.row,
                     args.grid.getColumns().findIndex(c => c.id === "pattern"),
                     200);
