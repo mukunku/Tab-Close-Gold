@@ -350,7 +350,7 @@ ${error.message}`;
 
                 const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
                 const recordCount = logRecords.length;
-                const $bodyContent = $(`<div style="font-family: monospace; max-height: 512px; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
+                const $bodyContent = $(`<div style="font-family: monospace; max-height: 60%; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
                 const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
                         <div style="width: 20%;">Showing last ${recordCount} log${recordCount == 1 ? '' : 's'}</div>
                         <div style="width: 20%;">
