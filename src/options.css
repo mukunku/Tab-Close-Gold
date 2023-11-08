@@ -1,5 +1,5 @@
 html {
-	font-family: Arial, sans-serif;
+	font-family: Arial, sans-serif !important;
 	background-image: url("./images/noise.png");
 	background-repeat: repeat;
 	font-size: 14px;
@@ -50,7 +50,7 @@ body {
 	padding: 10px;
 }
 
-.centerText {
+.center-text {
 	text-align: center;
 }
 
@@ -62,11 +62,11 @@ body {
 	text-decoration: underline;
 }
 
-.floatLeft {
+.float-left {
 	float: left;
 }
 
-.floatRight {
+.float-right {
 	float: right;
 }
 
@@ -182,4 +182,22 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 	overflow: auto;
 	z-index: 1000;
+	padding: 0px 8px;
+}
+
+.context-menu .pointer {
+	cursor: pointer;
+}
+
+.context-menu .option {
+	padding-top: 8px;
+}
+
+.context-menu .dropdown {
+	padding-right: 5px; 
+	margin: 0px 3px;
+}
+
+.context-menu .checkbox-label {
+	padding-left: 4px;
 }

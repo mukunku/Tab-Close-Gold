@@ -15,7 +15,7 @@ import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
 import { Environment, RuntimeEnvironment } from "./helpers/env";
 import { SessionStorageApi } from "./storage/storage-api.session";
-import { CheckboxOption, ContextMenu, DropdownOption } from "./helpers/context-menu";
+import { CheckboxOption, ContextMenu, DropdownOption, LinkButton } from "./helpers/context-menu";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -28,7 +28,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             formatter: Slick.Formatters.Checkmark,
             editor: Slick.Editors.Checkbox,
-            cssClass: "centerText",
+            cssClass: "center-text",
             width: 60
         },
         {
@@ -38,7 +38,16 @@ export class OptionsJS {
             sortable: true,
             resizable: true,
             cannotTriggerInsert: false,
-            editor: Slick.Editors.Text
+            editor: Slick.Editors.Text,
+            formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
+                const urlPattern = datacontext as UrlPattern;
+                if (urlPattern.isRegex) {
+                    return `<span>${value}<img title="Is Regex: true" class="float-right" src="./images/regex_12x12.png"
+                        style="padding: 3px; opacity: 75%;"></span>`;
+                } else {
+                    return `<span>${value}</span>`;
+                }
+            }
         },
         {
             name: "Delay",
@@ -55,19 +64,7 @@ export class OptionsJS {
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText",
-            width: 60
-        },
-        {
-            name: "Is RegEx?",
-            field: "isRegex",
-            id: "isRegex",
-            sortable: true,
-            resizable: false,
-            cannotTriggerInsert: true,
-            formatter: Slick.Formatters.Checkmark,
-            editor: Slick.Editors.Checkbox,
-            cssClass: "centerText",
+            cssClass: "center-text",
             width: 60
         },
         {
@@ -77,7 +74,7 @@ export class OptionsJS {
             sortable: true,
             resizable: false,
             cannotTriggerInsert: true,
-            cssClass: "centerText",
+            cssClass: "center-text",
             focusable: false,
             width: 60
         },
@@ -92,7 +89,7 @@ export class OptionsJS {
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText pointer underline",
+            cssClass: "center-text pointer underline",
             width: 60
         },
         {
@@ -115,9 +112,9 @@ export class OptionsJS {
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText",
+            cssClass: "center-text",
             width: 130
-        }, 
+        },
         {
             name: "Delete",
             field: "delete",
@@ -129,23 +126,9 @@ export class OptionsJS {
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText pointer underline",
+            cssClass: "center-text pointer underline",
             width: 60
-        }, 
-        {
-            name: "Reset Hits",
-            field: "resethits",
-            id: "resethits",
-            sortable: false,
-            resizable: false,
-            formatter: function () {
-                return "reset hits";
-            },
-            cannotTriggerInsert: true,
-            focusable: false,
-            cssClass: "centerText pointer underline",
-            width: 60
-        }, 
+        },
         {
             name: "Settings",
             field: "settings",
@@ -157,7 +140,7 @@ export class OptionsJS {
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "centerText",
+            cssClass: "center-text",
             width: 60
         }
     ];
@@ -192,12 +175,12 @@ export class OptionsJS {
         let urlPatterns: UrlPattern[] = await (await StorageApiFactory.getStorageApi()).getSettings();
 
         //sort by Last Hit On desc
-        urlPatterns.sort((pattern1, pattern2) => {
-            if (!pattern1 || !pattern2) {
-                return -1;
-            }
+        urlPatterns = urlPatterns.sort((pattern1, pattern2) => {
+            const lastHit1 = pattern1.lastHitOn || '1970-01-01T00:00:00.000Z';
+            const lastHit2 = pattern2.lastHitOn || '1970-01-01T00:00:00.000Z';
+
             //For some reason 'lastHitOn' is string in our storage. TODO: Need to investigate but seems to be working
-            let result = pattern2.lastHitOn?.toString().localeCompare(pattern1.lastHitOn?.toString() || '') //lastHitOn desc
+            let result = lastHit2.toString().localeCompare(lastHit1.toString() || '') //lastHitOn desc
             return result!;
         });
 
@@ -440,12 +423,13 @@ ${error.message}`;
         this.slickgrid = new Slick.Grid(selector, rows, columns, gridOptions);
         this.slickgrid.onClick.subscribe(async (event, args) => {
             try {
+                const gridRow = args.grid.getData()[args.row] as UrlPattern;
                 if (args.grid.getColumns()[args.cell].id === "hitHistory") {
-                    let lastHits = args.grid.getData()[args.row].lastHits as string[];
+                    let lastHits = gridRow.lastHits as string[];
                     let message = "Not hit yet!";
                     if (Array.isArray(lastHits) && lastHits.length > 0) {
                         let messageBuilder = [`Showing last ${UrlPattern.LAST_HIT_HISTORY_COUNT} hits (most recent first)`];
-                        console.log(`Printing hits for pattern: ${args.grid.getData()[args.row].pattern}`);
+                        console.log(`Printing hits for pattern: ${gridRow.pattern}`);
                         let index = 1;
                         for (let i = lastHits.length - 1; i >= 0; i--) {
                             //Trim the url so it fits in the alery box
@@ -472,34 +456,47 @@ ${error.message}`;
                         this.slickgrid!.render();
                         await this.saveSettings();
                     }
-                } else if (args.grid.getColumns()[args.cell].id === "resethits") {
-                    if (confirm("Are you sure you want to reset hits?")) {
-                        args.grid.getData()[args.row].hitCount = 0;
-                        args.grid.getData()[args.row].lastHits = [];
-                        args.grid.getData()[args.row].lastHitOn = null;
-                        this.slickgrid!.invalidateAllRows();
-                        this.slickgrid!.render();
-                        await this.saveSettings();
-                    }
                 } else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
-                    let currentDelay = args.grid.getData()[args.row].delayInMs > 0 ?
-                        args.grid.getData()[args.row].delayInMs : 1000;
+                    let currentDelay = gridRow.delayInMs > 0 ? gridRow.delayInMs : 1000;
                     let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`,
                         currentDelay.toString());
                     let delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, parseInt(delay));
                     if (delayInMs >= 0) {
-                        args.grid.getData()[args.row].delayInMs = delayInMs;
+                        gridRow.delayInMs = delayInMs;
                         await this.saveSettings();
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                     }
                 } else if (args.grid.getColumns()[args.cell].id === "settings") {
-                    const checkbox1 = new CheckboxOption("Checked", true);
-                    const checkbox2 = new CheckboxOption("Unchecked", false);
-                    const dropdown = new DropdownOption(["1", "2", "3"], "2");
+                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => { 
+                        gridRow.isRegex = checked;
+                        this.slickgrid!.invalidateAllRows();
+                        this.slickgrid!.render();
+                        await this.saveSettings();
+                    });
+                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url & Title"], "Url", (dropdown: string) => { 
+                        if (dropdown === "Url") {
+
+                        } else if (dropdown === "Title") {
+
+                        } else if (dropdown === "Url & Title") {
+
+                        }
+                        return Promise.resolve() 
+                    });
+                    const resetHitsButton = new LinkButton("Reset hits", async () => {
+                        if (confirm("Are you sure you want to reset hits?")) {
+                            gridRow.hitCount = 0;
+                            gridRow.lastHits = [];
+                            gridRow.lastHitOn = null;
+                            this.slickgrid!.invalidateAllRows();
+                            this.slickgrid!.render();
+                            await this.saveSettings();
+                        }
+                    });
 
                     const $clickedCell = $(args.grid.getCellNode(args.row, args.cell));
-                    const menu = new ContextMenu([checkbox1, checkbox2, dropdown]);
+                    const menu = new ContextMenu([isRegexCheckbox, matchByDropdown, resetHitsButton]);
                     menu.render($clickedCell);
                     event.stopPropagation(); //don't trigger onclick handlers we attach in ContextMenu
                 }
