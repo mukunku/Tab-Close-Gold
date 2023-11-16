@@ -1,38 +1,39 @@
 {
-    "manifest_version": 3,
-    "name": "Tab Close Gold",
-    "version": "2.2.2.0",
-    "permissions": [
-      "tabs",
-      "storage"
-    ],
-    "options_ui": {
-        "page": "options.html",
-        "open_in_tab": true
-    },
-    "description": "Tired of ads passing by your ad blocker? Leftover Zoom tabs got you down? Want a simple extension to auto close tabs? Then look no further!",
-    "icons": {
+  "manifest_version": 3,
+  "name": "Tab Close Gold",
+  "version": "3.0.0.0",
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "description": "Tired of ads passing by your ad blocker? Leftover Zoom tabs got you down? Want a simple extension to auto close tabs? Then look no further!",
+  "icons": {
+    "128": "icon128.png"
+  },
+  "author": "mukunku",
+  "background": {
+    "scripts": [
+      "background.bundle.js"
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "action": {
+    "default_icon": {
       "128": "icon128.png"
     },
-    "author": "mukunku",
-    "background": {
-      "scripts": ["background.bundle.js"]
-    },
-    "content_security_policy": {
-      "extension_pages": "script-src 'self'; object-src 'self'"
-    },
-    "action": {
-      "default_icon": {               
-        "128": "icon128.png"
-      },
-      "default_title": "Tab Close Gold",
-      "default_popup": "popup.html" 
-    }, 
-    "browser_specific_settings": {
-        "gecko": {
-            "id": "tabclosegold@mukunku.com",
-            "strict_min_version": "109.0"
-        }
+    "default_title": "Tab Close Gold",
+    "default_popup": "popup.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tabclosegold@mukunku.com",
+      "strict_min_version": "109.0"
     }
+  }
 }
-  
