@@ -1,7 +1,7 @@
 import { StorageApi } from "./storage/storage-api";
 import { ChromeStorageType } from "./storage/chrome-storage-types";
 import { StorageApiFactory } from "./storage/storage-api-factory";
-import { UrlPattern } from "./storage/url-pattern";
+import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import 'slickgrid';
 
 //Following dependencies are needed for Slickgrid to work (webpack will bundle all them into 'options.bundle.js')
@@ -42,8 +42,8 @@ export class OptionsJS {
             formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
                 const urlPattern = datacontext as UrlPattern;
                 if (urlPattern.isRegex) {
-                    return `<span>${value}<img title="Is Regex: true" class="float-right" src="./images/regex_12x12.png"
-                        style="padding: 3px; opacity: 75%;"></span>`;
+                    return `<span>${value}<img title="Regex" class="float-right" src="./images/regex_12x12.png"
+                        style="padding: 3px; opacity: 70%;"></span>`;
                 } else {
                     return `<span>${value}</span>`;
                 }
@@ -242,7 +242,7 @@ export class OptionsJS {
                     var config = importConfig[i];
 
                     if (config && config.pattern && config.pattern.trim()) {
-                        let urlPattern = new UrlPattern(config.pattern.trim(), !!config.isRegex);
+                        let urlPattern = new UrlPattern(config.pattern.trim(), !!config.isRegex, config.matchBy);
                         urlPattern.enabled = !!config.enabled;
                         urlPattern.delayInMs
                             = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs) || 0;
@@ -328,18 +328,18 @@ ${error.message}`;
 
                 //Data isn't exactly chronologically sorted due to race conditions. So we sort it here.
                 logRecords = logRecords.sort( //desc
-                    (a: LogRecord, b: LogRecord) => a.date == b.date ? 0 : (a.date > b.date ? -1 : 1)
+                    (a: LogRecord, b: LogRecord) => a.date === b.date ? 0 : (a.date > b.date ? -1 : 1)
                 );
 
                 const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
                 const recordCount = logRecords.length;
                 const $bodyContent = $(`<div style="font-family: monospace; max-height: 60%; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
                 const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
-                        <div style="width: 20%;">Showing last ${recordCount} log${recordCount == 1 ? '' : 's'}</div>
+                        <div style="width: 20%;">Showing ${recordCount} recent log${recordCount === 1 ? '' : 's'}</div>
                         <div style="width: 20%;">
                             <label for="log-level">Log Level:</label>
                             <select name="log-level" id="log-level">
-                                <option value="1">Trace</option>
+                                ${(!Environment.isProd() ? '<option value="1">Trace</option>' : '')}
                                 <option value="2">Debug</option>
                                 <option value="4">Warning</option>
                                 <option value="8">Error</option>
@@ -355,12 +355,12 @@ ${error.message}`;
                         mode: null, // Disable modal mode, allow click outside to close
                         headerContent: $headerContent,
                         htmlContent: $bodyContent
-                    }); //just creating the object will create the modal
+                    }); //just creating the object will display the modal
                 } else {
                     modal.initialize($headerContent, $bodyContent);
                 }
 
-                $('#log-level').on('change', async (event: any) => {
+                $('#log-level').off('change').on('change', async (event: any) => {
                     let minLogLevel = parseInt(event.target.value) as LogLevel;
                     const sessionStorage = new SessionStorageApi();
                     await sessionStorage.SetByKey('MIN_LOG_LEVEL', minLogLevel);
@@ -375,14 +375,12 @@ ${error.message}`;
             }
 
             try {
-                //TODO: This log rendering logic needs to be improved. But this'll do for now.
                 const sessionStorage = new SessionStorageApi();
-                const maxLogCount = 5000; //hard code to match CircularLogBuffer constant
+                const maxLogCount = Logger.KEEP_LAST_N_LOGS; //render all logs for now
                 const logIterator = await Logger.getLogsIterator(false);
 
                 let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
-                const minLogLevel = userSelectedMinLogLevel
-                    || (Environment.getEnvironment() === RuntimeEnvironment.Production ? LogLevel.Warning : LogLevel.Debug);
+                const minLogLevel = userSelectedMinLogLevel || LogLevel.Debug;
                 renderLogs(logIterator, maxLogCount, minLogLevel);
             } catch (error: any) {
                 const errorMessage = `Could not show logs.
@@ -432,8 +430,8 @@ ${error.message}`;
                         console.log(`Printing hits for pattern: ${gridRow.pattern}`);
                         let index = 1;
                         for (let i = lastHits.length - 1; i >= 0; i--) {
-                            //Trim the url so it fits in the alery box
-                            const maxUrlLength = 60;
+                            //Trim the url so it fits in the alert box
+                            const maxUrlLength = 50;
                             let lastHitTrimmed = lastHits[i].length > maxUrlLength ?
                                 lastHits[i].substring(0, maxUrlLength - 3) + "..."
                                 : lastHits[i];
@@ -468,30 +466,45 @@ ${error.message}`;
                         this.slickgrid!.render();
                     }
                 } else if (args.grid.getColumns()[args.cell].id === "settings") {
-                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => { 
-                        gridRow.isRegex = checked;
+                    const saveSettings = async () => { 
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                         await this.saveSettings();
+                    };
+                    
+                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => { 
+                        gridRow.isRegex = checked;
+                        await saveSettings();
                     });
-                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url & Title"], "Url", (dropdown: string) => { 
+
+                    let currentValue = "Url";
+                    if (gridRow.matchBy === MatchBy.Url) {
+                        currentValue = "Url";
+                    } else if (gridRow.matchBy === MatchBy.Title) {
+                        currentValue = "Title";
+                    } else if (gridRow.matchBy === MatchBy.Url_or_Title) {
+                        currentValue = "Url or Title";
+                    }
+
+                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => { 
                         if (dropdown === "Url") {
-
+                            gridRow.matchBy = MatchBy.Url;
                         } else if (dropdown === "Title") {
-
-                        } else if (dropdown === "Url & Title") {
-
+                            gridRow.matchBy = MatchBy.Title;
+                        } else if (dropdown === "Url or Title") {
+                            gridRow.matchBy = MatchBy.Url_or_Title;
+                        } else {
+                            return;
                         }
-                        return Promise.resolve() 
+                        await saveSettings();
                     });
+
                     const resetHitsButton = new LinkButton("Reset hits", async () => {
                         if (confirm("Are you sure you want to reset hits?")) {
                             gridRow.hitCount = 0;
                             gridRow.lastHits = [];
                             gridRow.lastHitOn = null;
-                            this.slickgrid!.invalidateAllRows();
-                            this.slickgrid!.render();
-                            await this.saveSettings();
+                            await saveSettings();
                         }
                     });
 

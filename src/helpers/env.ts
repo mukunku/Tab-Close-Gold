@@ -1,3 +1,5 @@
+import * as browser from "webextension-polyfill";
+
 export enum RuntimeEnvironment {
     Unknown,
     Development,
@@ -14,5 +16,17 @@ export class Environment {
         } else {
             return RuntimeEnvironment.Unknown;
         }
+    }
+
+    public static isProd(): boolean {
+        return Environment.getEnvironment() === RuntimeEnvironment.Production;
+    }
+
+    public static isDev(): boolean {
+        return Environment.getEnvironment() === RuntimeEnvironment.Development;
+    }
+
+    public static isFirefox(): boolean {
+        return !browser.storage.local.QUOTA_BYTES; //QUOTA_BYTES is not defined in FF
     }
 }

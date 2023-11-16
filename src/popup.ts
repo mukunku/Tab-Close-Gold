@@ -1,5 +1,6 @@
+import { Environment } from "./helpers/env";
 import { StorageApiFactory } from "./storage/storage-api-factory";
-import { UrlPattern } from "./storage/url-pattern";
+import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
 
 export class PopupJS {
@@ -13,15 +14,13 @@ export class PopupJS {
             if (tabs && tabs[0]) {
                 let currentTab = tabs[0];
 
-                //@ts-ignore
-                let isFirefox = !browser.storage.local.QUOTA_BYTES; //QUOTA_BYTES is not defined in FF
-                if (isFirefox) {
-                    //HACK: the prompt doesn't fit into the popup in firefox so we need to resize the popup..
+                if (Environment.isFirefox()) {
+                    //HACK: the prompt doesn't fit into the popup in firefox so we need to resize the popup...
                     this.$body.height(this.$body.height()! + 100);
                     this.$body.width(this.$body.width()! + 200);
                 }
 
-                if (UrlPattern.isSystemTab(currentTab.url!)) {
+                if (UrlPattern.isSystemTab(currentTab.url!, null)) {
                     alert("Can't blacklist this page");
                     window.close();
                     return;
@@ -81,7 +80,7 @@ export class PopupJS {
         }
 
         if (!alreadyExists) {
-            let newConfig = new UrlPattern(url, false);
+            let newConfig = new UrlPattern(url, false, MatchBy.Url);
             newConfig.lastHits.push(fullUrl);
             newConfig.hitCount = 1;
             newConfig.lastHitOn = new Date();

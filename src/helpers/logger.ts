@@ -1,46 +1,57 @@
+import { Mutex } from "async-mutex";
 import { LocalStorageApi } from "../storage/storage-api.local";
 import { CircularLogBuffer } from "./circular-log-buffer";
-import { Environment, RuntimeEnvironment } from "./env";
+import { Environment } from "./env";
 import { Queue } from "./queue";
 
 export class Logger {
+    public static readonly KEEP_LAST_N_LOGS: number = 5000;
     private static readonly SESSION_LOGS_KEY: string = 'session-logs';
-    private static readonly KEEP_LAST_N_LOGS: number = 5000;
     private static readonly FLUSH_INTERVAL_MS: number = 2000;
     private static readonly SYNC_FAILURE_THRESHOLD: number = 5;
     private static readonly LOGS_PER_SYNC_BATCH_SIZE: number = 1000;
 
     private static instance: Logger;
+    private static mutex: Mutex = new Mutex();
     private storage: LocalStorageApi;
     private queue: Queue<LogRecord>;
     private intervalId: NodeJS.Timeout;
     private syncFailureCount: number = 0;
-    private minLogLevel: LogLevel;
-    private readonly readonly: boolean = false;
+    public minLogLevel: LogLevel;
+    public readonly readonly: boolean = false;
 
     private constructor(readonly: boolean) {
         this.readonly = readonly;
         this.queue = new Queue<LogRecord>();
         this.intervalId = 0 as unknown as NodeJS.Timeout
-
         this.storage = new LocalStorageApi();
 
         if (readonly) {
             this.minLogLevel = LogLevel.None;
             return; //don't do anything else if readonly
-        } else if (Environment.getEnvironment() === RuntimeEnvironment.Development) {
+        } else if (!Environment.isProd()) {
             this.minLogLevel = LogLevel.All;
         } else {
-            this.minLogLevel = LogLevel.Warning | LogLevel.Error;
+            this.minLogLevel = LogLevel.Debug | LogLevel.Warning | LogLevel.Error;
         }
 
-        //Flush logs to storage regularly 
-        this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
+        //Clear out any old logs (we could persist logs for a long time but i feel like this is more tidy)
+        this.storage.SetByKey(Logger.SESSION_LOGS_KEY, new CircularLogBuffer<LogRecord>(Logger.KEEP_LAST_N_LOGS)).then(() => {
+            //Flush logs to storage regularly 
+            this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
+        });
     }
 
-    public static getInstance(): Logger {
+    public static async getInstance(): Promise<Logger> {
         if (!Logger.instance) {
-            Logger.instance = new Logger(false);
+            const release: Function = await Logger.mutex.acquire();
+            try {
+                if (!Logger.instance) {
+                    Logger.instance = new Logger(false);
+                }
+            } finally {
+                release();
+            }
         }
         return Logger.instance;
     }
@@ -65,6 +76,12 @@ export class Logger {
         this.log(message, LogLevel.Trace);
     }
 
+    public static logTrace(message: string): void {
+        Logger.getInstance().then((logger: Logger) => {
+            logger.logTrace(message);
+        });
+    }
+
     public logDebug(message: string): void {
         if ((this.minLogLevel & LogLevel.Debug) !== LogLevel.Debug) {
             return;
@@ -72,6 +89,12 @@ export class Logger {
 
         console.log(LogRecord.timestampMessage(message))
         this.log(message, LogLevel.Debug);
+    }
+
+    public static logDebug(message: string): void {
+        Logger.getInstance().then((logger: Logger) => {
+            logger.logDebug(message);
+        });
     }
 
     public logWarning(message: string): void {
@@ -83,6 +106,12 @@ export class Logger {
         this.log(message, LogLevel.Warning);
     }
 
+    public static logWarning(message: string): void {
+        Logger.getInstance().then((logger: Logger) => {
+            logger.logWarning(message);
+        });
+    }
+
     public logError(message: string): void {
         if ((this.minLogLevel & LogLevel.Error) !== LogLevel.Error) {
             return;
@@ -90,6 +119,12 @@ export class Logger {
 
         console.error(LogRecord.timestampMessage(message));
         this.log(message, LogLevel.Error);
+    }
+
+    public static logError(message: string): void {
+        Logger.getInstance().then((logger: Logger) => {
+            logger.logError(message);
+        });
     }
 
     private log(message: string, logLevel: LogLevel) {
@@ -107,7 +142,6 @@ export class Logger {
         try {
             try {
                 const storageUsage = await this.storage.getStorageUsage();
-
                 let logs = await this.getLogBuffer();
 
                 //Check if we need to downsize due to storage issues

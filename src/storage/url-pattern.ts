@@ -1,3 +1,8 @@
+export enum MatchBy {
+    Url = 0,
+    Title = 1,
+    Url_or_Title = 2
+}
 
 export class UrlPattern {
     public static readonly LAST_HIT_HISTORY_COUNT: number = 5;
@@ -11,8 +16,9 @@ export class UrlPattern {
     public lastHits: string[]; //replaces 'lastHit' (TODO: Remove 'lastHit' after some time)
     public lastHitOn: Date | null;
     public delayInMs: number;
+    public matchBy: MatchBy;
 
-    constructor(pattern: string, isRegex: boolean) {
+    constructor(pattern: string, isRegex: boolean, matchBy: MatchBy) {
         this.enabled = true;
         this.pattern = pattern;
         this.isRegex = isRegex;
@@ -21,6 +27,7 @@ export class UrlPattern {
         this.lastHits = [];
         this.lastHitOn = null;
         this.delayInMs = 0;
+        this.matchBy = matchBy;
     }
 
     public static readonly DEFAULT_SETTINGS: UrlPattern[] = 
@@ -32,7 +39,8 @@ export class UrlPattern {
         lastHit: '',
         lastHits: [],
         lastHitOn: null,
-        delayInMs: 0
+        delayInMs: 0,
+        matchBy: MatchBy.Url
     },{
         enabled: false,
         pattern: "zoom.us/j/*",
@@ -41,13 +49,33 @@ export class UrlPattern {
         lastHit: '',
         lastHits: [],
         lastHitOn: null,
-        delayInMs: 5000
+        delayInMs: 5000,
+        matchBy: MatchBy.Url
     }]; 
     
-    public static isSystemTab(url: string): boolean {
-        return url.startsWith('chrome-extension:') || 
-			url.startsWith('chrome:') || 
-			url.startsWith('about:') || 
-			url.startsWith('moz-extension:');
+    public static isSystemTab(url: string | null | undefined, title: string | null | undefined): boolean {
+        if (!url && !title) {
+            return false;
+        }
+        
+        return !!(url && (
+                url.startsWith('chrome-extension:') || 
+                url.startsWith('chrome:') || 
+                url.startsWith('about:') || 
+                url.startsWith('moz-extension:')
+            ) || (title && (
+                title === 'Tab Close Gold - Options' || 
+                title === 'New Tab' || 
+                title.startsWith('chrome://') ||
+                title.startsWith('about://') || 
+                title.startsWith('moz-extension:') || 
+
+                //Chrome & Firefox system tab names for settings and extensions
+                title === 'Settings' ||
+                title === 'Extensions' ||
+                title === 'Add-ons Manager' || 
+                title === 'Extensions - Tab Close Gold'
+            )));
     }
 }
+

@@ -5,6 +5,7 @@ import { StorageUsage } from "./storage-usage";
 import * as browser from "webextension-polyfill";
 import { Logger } from "../helpers/logger";
 import { ChromeStorageType } from "./chrome-storage-types";
+import { Environment } from "../helpers/env";
 
 export class LocalStorageApi extends StorageApi {
     public storageType = ChromeStorageType.Local;
@@ -20,16 +21,16 @@ export class LocalStorageApi extends StorageApi {
     }
 
     public async getStorageUsage(): Promise<StorageUsage> {
-        // @ts-ignore
-        if (typeof browser.storage.local.getBytesInUse === 'function') {
-            // @ts-ignore
+        //@ts-ignore
+        if (browser.storage.local.QUOTA_BYTES && browser.storage.local.getBytesInUse) { //Chrome
+            //@ts-ignore
             let bytesUsed = await browser.storage.local.getBytesInUse(null); //null = get all usage
             return new StorageUsage(bytesUsed, browser.storage.local.QUOTA_BYTES);
         } else { //Firefox
-            //Firefox doesn't define a QUOTA_BYTES constant. Their documetation says they can't provide
-            //an exact number ?! So let's hard code Chrome's QUOTA_BYTES value as a best effort *shrug*
-            const CHROME_LOCAL_STORAGE_QUOTA_BYTES = 10485760;
-            return new StorageUsage(await this.calculateBytesInUse(), CHROME_LOCAL_STORAGE_QUOTA_BYTES);
+            //Firefox doesn't define a QUOTA_BYTES constant. Nor a getBytesInUse() function.
+            //So we'll need to calculate it ourselves. This isn't exact but it's close.
+            const FIREFOX_LOCAL_STORAGE_QUOTA_BYTES = 10485760;
+            return new StorageUsage(await this.calculateBytesInUse(), FIREFOX_LOCAL_STORAGE_QUOTA_BYTES);
         }
     }
 
