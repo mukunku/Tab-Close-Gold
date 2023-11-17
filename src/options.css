@@ -173,7 +173,6 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	width: 100%;
 	padding: 0.25em;
 }
-
 /*Modal CSS End*/
 
 .context-menu {
@@ -181,7 +180,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	top: 0;
 	left: 0;
 	height: 122px;
-	width: 156px;
+	width: 160px;
 	background-color: #fff;
 	border: 1px solid #000;
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);

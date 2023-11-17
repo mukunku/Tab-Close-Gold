@@ -57,7 +57,7 @@ export class OptionsJS {
                     iconCount++;
                 }
 
-                if (urlPattern.matchBy == undefined || urlPattern.matchBy === MatchBy.Url || urlPattern.matchBy === MatchBy.Url_or_Title) {
+                if (urlPattern.matchBy === MatchBy.Url_or_Title) {
                     $html.prepend(`<img title="Match by Url" class="float-right" src="./images/link_12x12.png"
                         style="padding: 3px; z-index:500;">`);
                     iconCount++;
@@ -383,7 +383,7 @@ ${error.message}`;
                 const logIterator = await Logger.getLogsIterator(false);
 
                 let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
-                const minLogLevel = userSelectedMinLogLevel || LogLevel.Debug;
+                const minLogLevel = userSelectedMinLogLevel || (Environment.isProd() ? LogLevel.Warning : LogLevel.Debug);
                 renderLogs(logIterator, maxLogCount, minLogLevel);
             } catch (error: any) {
                 const errorMessage = `Could not show logs.
