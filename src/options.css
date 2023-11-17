@@ -1,16 +1,23 @@
+:root {
+	--main-font-size: 12px;
+}
+
 html {
 	font-family: Arial, sans-serif !important;
 	background-image: url("./images/noise.png");
 	background-repeat: repeat;
-	font-size: 14px;
-}
-
-input {
-	font-size: 12px;
+	font-size: initial;
 }
 
 body {
 	background: transparent;
+}
+
+body,
+input,
+button,
+textarea {
+	font-size: var(--main-font-size);
 }
 
 #main {
@@ -24,7 +31,7 @@ body {
 	margin-bottom: 10px;
 }
 
-#body {
+#main-grid {
 	width: 100%;
 	height: 70%;
 }
@@ -35,13 +42,12 @@ body {
 }
 
 #configFooter {
-	margin-top: 10px;
 	min-height: 105px;
 }
 
 #title {
 	line-height: 64px;
-	font-size: 2vw;
+	font-size: 34px;
 	margin-left: 10px;
 }
 
@@ -54,8 +60,8 @@ body {
 	text-align: center;
 }
 
-.slick-cell.pointer {
-	cursor: pointer;
+.pointer {
+	cursor: pointer !important;
 }
 
 .underline {
@@ -98,7 +104,6 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	margin-left: 61px;
 	content: 'click to add';
 	font-style: italic;
-	font-size: 12px;
 	line-height: 24px;
 	opacity: 50%;
 }
@@ -175,8 +180,8 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	position: absolute;
 	top: 0;
 	left: 0;
-	height: 500px;
-	width: 400px;
+	height: 122px;
+	width: 156px;
 	background-color: #fff;
 	border: 1px solid #000;
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
@@ -185,16 +190,17 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	padding: 0px 8px;
 }
 
-.context-menu .pointer {
-	cursor: pointer;
+.context-menu .option {
+	padding-top: 10px;
+	line-height: 14px;
 }
 
-.context-menu .option {
-	padding-top: 8px;
+.context-menu .linkbutton {
+	margin: 0px 3px;
 }
 
 .context-menu .dropdown {
-	padding-right: 5px; 
+	padding-right: 5px;
 	margin: 0px 3px;
 }
 

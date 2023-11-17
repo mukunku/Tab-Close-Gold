@@ -148,7 +148,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 		const errorMessage = error?.message || "";
 
 		//Tab might not exist if it matched by both Url and Title since one will be faster to close the tab before the other
-		if (!errorMessage.startsWith("No tab with id:")) {
+		if (!errorMessage.startsWith("No tab with id:") /*Chrome*/ && !errorMessage.startsWith("Invalid tab ID:") /*Firefox*/) {
 			Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${error.message}`);
 		} else {
 			Logger.logTrace(`Tab with url '${tabUrl}' and title '${tabTitle}' was already closed`)

@@ -1,4 +1,5 @@
 <html>
+
 <head>
 	<link rel="stylesheet" type="text/css" href="options.css">
 	<link rel="stylesheet" type="text/css" href="lib/slick-default-theme.css">
@@ -6,6 +7,7 @@
 	<script src="options.bundle.js"></script>
 	<title>Tab Close Gold - Options</title>
 </head>
+
 <body>
 	<div id="main" class="center">
 		<div id="header">
@@ -14,17 +16,17 @@
 		</div>
 		<div class="float-left">
 			<b style="font-size: 18px; padding-left: 3px; top: 2px; position: relative;">*</b>
-			<span class="select-none"> = wild card. Example: </span><span>www.face*.com</span>
+			<span class="select-none"> = wild card. Example: </span><span>face*.com</span>
 		</div>
 		<div class="float-right">
 			<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
 		</div>
-		<div id="body">
+		<div id="main-grid">
 		</div>
 		<div id="footer">
 			<div class="float-left">
 				<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
-					<!-- Lets hide the storage switcher for now. Maybe we can expose it to users later down the road -->
+					<!-- We use local storage for logs so we can't allow people to switch between local and cloud storage for now -->
 					<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
 					<select id="storage-dropdown" class="flex-item" name="storage_option">
 						<option value="Cloud">Cloud</option>
@@ -39,8 +41,9 @@
 					<span id="storage-usage-percentage-text" class="flex-item" style="margin-left: 5px;">0%</span>
 				</div>
 			</div>
-			<div style="clear:both;" />
-			<button id="show-logs-button" class="float-right">Logs</button>
+			<div class="float-right">
+				<button id="show-logs-button" class="float-right">Logs</button>
+			</div>
 		</div>
 		<div id="configFooter">
 			<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5"
@@ -54,4 +57,5 @@ Import will read from here."></textarea>
 		</div>
 	</div>
 </body>
+
 </html>

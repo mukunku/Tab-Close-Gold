@@ -13,7 +13,7 @@ import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid';
 import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
-import { Environment, RuntimeEnvironment } from "./helpers/env";
+import { Environment } from "./helpers/env";
 import { SessionStorageApi } from "./storage/storage-api.session";
 import { CheckboxOption, ContextMenu, DropdownOption, LinkButton } from "./helpers/context-menu";
 
@@ -39,14 +39,31 @@ export class OptionsJS {
             resizable: true,
             cannotTriggerInsert: false,
             editor: Slick.Editors.Text,
-            formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
+            formatter: (row: number, cell: number, value: any, columndef: any, datacontext: any) => {
                 const urlPattern = datacontext as UrlPattern;
+
+                const $html = $(`<div><span>${value}</span></div>`);
+                let iconCount = 0;
+
                 if (urlPattern.isRegex) {
-                    return `<span>${value}<img title="Regex" class="float-right" src="./images/regex_12x12.png"
-                        style="padding: 3px; opacity: 70%;"></span>`;
-                } else {
-                    return `<span>${value}</span>`;
+                    $html.prepend(`<img title="Regex" class="float-right" src="./images/regex_12x12.png"
+                        style="padding: 3px; opacity: 70%;">`);
+                    iconCount++;
                 }
+
+                if (urlPattern.matchBy === MatchBy.Title || urlPattern.matchBy === MatchBy.Url_or_Title) {
+                    $html.prepend(`<img title="Match by Title" class="float-right" src="./images/title_12x12.png"
+                        style="padding: 3px; opacity: 70%;">`);
+                    iconCount++;
+                }
+
+                if (urlPattern.matchBy == undefined || urlPattern.matchBy === MatchBy.Url || urlPattern.matchBy === MatchBy.Url_or_Title) {
+                    $html.prepend(`<img title="Match by Url" class="float-right" src="./images/link_12x12.png"
+                        style="padding: 3px; z-index:500;">`);
+                    iconCount++;
+                }
+
+                return $html.html();
             }
         },
         {
@@ -76,7 +93,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             cssClass: "center-text",
             focusable: false,
-            width: 60
+            width: 70
         },
         {
             name: "Last Hits",
@@ -85,12 +102,12 @@ export class OptionsJS {
             sortable: false,
             resizable: false,
             formatter: function () {
-                return "last hits";
+                return '<span class="pointer">last hits</span>';
             },
             cannotTriggerInsert: true,
             focusable: false,
-            cssClass: "center-text pointer underline",
-            width: 60
+            cssClass: "center-text underline",
+            width: 66
         },
         {
             name: "Last Hit On",
@@ -113,21 +130,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "center-text",
-            width: 130
-        },
-        {
-            name: "Delete",
-            field: "delete",
-            id: "delete",
-            sortable: false,
-            resizable: false,
-            formatter: function () {
-                return "delete";
-            },
-            cannotTriggerInsert: true,
-            focusable: false,
-            cssClass: "center-text pointer underline",
-            width: 60
+            width: 150
         },
         {
             name: "Settings",
@@ -184,7 +187,7 @@ export class OptionsJS {
             return result!;
         });
 
-        this.populateGrid("#body", urlPatterns, OptionsJS.columns, OptionsJS.options);
+        this.populateGrid("#main-grid", urlPatterns, OptionsJS.columns, OptionsJS.options);
 
         //Tell slick grid the data is sorted (doesn't actually trigger sort)
         this.slickgrid?.setSortColumns([
@@ -301,7 +304,7 @@ ${error.message}`;
         });
 
         //make slickgrid checkboxes more responsive
-        $('#body').on('blur', 'input.editor-checkbox', function () {
+        $('#main-grid').on('blur', 'input.editor-checkbox', function () {
             Slick.GlobalEditorLock.commitCurrentEdit();
         });
 
@@ -422,6 +425,12 @@ ${error.message}`;
         this.slickgrid.onClick.subscribe(async (event, args) => {
             try {
                 const gridRow = args.grid.getData()[args.row] as UrlPattern;
+
+                if (!gridRow) {
+                    //Seen this happen once so adding this if check just in case
+                    return;
+                }
+
                 if (args.grid.getColumns()[args.cell].id === "hitHistory") {
                     let lastHits = gridRow.lastHits as string[];
                     let message = "Not hit yet!";
@@ -447,13 +456,6 @@ ${error.message}`;
                         message = messageBuilder.join("\r\n");
                     }
                     alert(message);
-                } else if (args.grid.getColumns()[args.cell].id === "delete") {
-                    if (confirm("Are you sure you want to delete?")) {
-                        args.grid.getData().splice(args.row, 1);
-                        this.slickgrid!.invalidateAllRows();
-                        this.slickgrid!.render();
-                        await this.saveSettings();
-                    }
                 } else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
                     let currentDelay = gridRow.delayInMs > 0 ? gridRow.delayInMs : 1000;
                     let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`,
@@ -466,13 +468,15 @@ ${error.message}`;
                         this.slickgrid!.render();
                     }
                 } else if (args.grid.getColumns()[args.cell].id === "settings") {
-                    const saveSettings = async () => { 
+                    const saveSettings = async () => {
                         this.slickgrid!.invalidateAllRows();
                         this.slickgrid!.render();
                         await this.saveSettings();
                     };
-                    
-                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => { 
+
+                    let menu: ContextMenu | null = null;
+
+                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => {
                         gridRow.isRegex = checked;
                         await saveSettings();
                     });
@@ -486,7 +490,7 @@ ${error.message}`;
                         currentValue = "Url or Title";
                     }
 
-                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => { 
+                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => {
                         if (dropdown === "Url") {
                             gridRow.matchBy = MatchBy.Url;
                         } else if (dropdown === "Title") {
@@ -506,12 +510,29 @@ ${error.message}`;
                             gridRow.lastHitOn = null;
                             await saveSettings();
                         }
+                        menu?.removeAll();
                     });
 
+                    const deleteRowButton = new LinkButton("Delete", async () => {
+                        if (confirm("Are you sure you want to delete?")) {
+                            args.grid.getData().splice(args.row, 1);
+                            this.slickgrid!.invalidateAllRows();
+                            this.slickgrid!.render();
+                            await this.saveSettings();
+                        }
+                        menu?.removeAll();
+                    }, "color: red;");
+
                     const $clickedCell = $(args.grid.getCellNode(args.row, args.cell));
-                    const menu = new ContextMenu([isRegexCheckbox, matchByDropdown, resetHitsButton]);
+                    menu = new ContextMenu([isRegexCheckbox, matchByDropdown, resetHitsButton, deleteRowButton],
+                        () => { $clickedCell.css("background-color", ""); });
+
+                    //color the clicked cell to make more obvious
+                    $clickedCell.css("background-color", "cornsilk");
+
+                    console.log($clickedCell);
                     menu.render($clickedCell);
-                    event.stopPropagation(); //don't trigger onclick handlers we attach in ContextMenu
+                    event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
                 }
             }
             catch (error: any) {
