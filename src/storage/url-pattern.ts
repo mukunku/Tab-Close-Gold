@@ -12,8 +12,7 @@ export class UrlPattern {
     public pattern: string;
     public isRegex: boolean;
     public hitCount: number;
-    public lastHit: string | null;
-    public lastHits: string[]; //replaces 'lastHit' (TODO: Remove 'lastHit' after some time)
+    public lastHits: string[];
     public lastHitOn: Date | null;
     public delayInMs: number;
     public matchBy: MatchBy;
@@ -23,7 +22,6 @@ export class UrlPattern {
         this.pattern = pattern;
         this.isRegex = isRegex;
         this.hitCount = 0;
-        this.lastHit = '';
         this.lastHits = [];
         this.lastHitOn = null;
         this.delayInMs = 0;
@@ -36,7 +34,6 @@ export class UrlPattern {
         pattern: "findtheinvisiblecow.com",
         isRegex: false,
         hitCount: 0,
-        lastHit: '',
         lastHits: [],
         lastHitOn: null,
         delayInMs: 0,
@@ -46,7 +43,6 @@ export class UrlPattern {
         pattern: "zoom.us/j/*",
         isRegex: false,
         hitCount: 0,
-        lastHit: '',
         lastHits: [],
         lastHitOn: null,
         delayInMs: 5000,

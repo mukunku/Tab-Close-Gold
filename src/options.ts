@@ -39,28 +39,29 @@ export class OptionsJS {
             resizable: true,
             cannotTriggerInsert: false,
             editor: Slick.Editors.Text,
+            cssClass: "search-pattern-cell",
             formatter: (row: number, cell: number, value: any, columndef: any, datacontext: any) => {
                 const urlPattern = datacontext as UrlPattern;
-
                 const $html = $(`<div><span>${value}</span></div>`);
-                let iconCount = 0;
 
                 if (urlPattern.isRegex) {
-                    $html.prepend(`<img title="Regex" class="float-right" src="./images/regex_12x12.png"
+                    $html.prepend(`<img title="Regex" class="float-right option-icon" src="./images/regex_12x12.png"
                         style="padding: 3px; opacity: 70%;">`);
-                    iconCount++;
                 }
 
                 if (urlPattern.matchBy === MatchBy.Title || urlPattern.matchBy === MatchBy.Url_or_Title) {
-                    $html.prepend(`<img title="Match by Title" class="float-right" src="./images/title_12x12.png"
+                    $html.prepend(`<img title="Match by Title" class="float-right option-icon" src="./images/title_12x12.png"
                         style="padding: 3px; opacity: 70%;">`);
-                    iconCount++;
                 }
 
-                if (urlPattern.matchBy === MatchBy.Url_or_Title) {
-                    $html.prepend(`<img title="Match by Url" class="float-right" src="./images/link_12x12.png"
-                        style="padding: 3px; z-index:500;">`);
-                    iconCount++;
+                if (urlPattern.matchBy == undefined || urlPattern.matchBy === MatchBy.Url || urlPattern.matchBy === MatchBy.Url_or_Title) {
+                    $html.prepend(`<img title="Match by Url" class="float-right option-icon" src="./images/link_12x12.png"
+                        style="padding: 3px;">`);
+                }
+
+                //HACK: Make the row being edited via context menu show the search pattern icons 
+                if (row === OptionsJS.contextMenuOpenForRow) {
+                    $html.children('img').addClass('d-block');
                 }
 
                 return $html.html();
@@ -74,9 +75,9 @@ export class OptionsJS {
             resizable: false,
             formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
                 if (!value || value <= 0) {
-                    return '<img style="cursor: pointer;" src="./images/stopwatch-inactive.png">';
+                    return '<img class="pointer" src="./images/stopwatch-inactive.png">';
                 } else {
-                    return '<img style="cursor: pointer;" src="./images/stopwatch-active.png">';
+                    return '<img class="pointer" src="./images/stopwatch-active.png">';
                 }
             },
             cannotTriggerInsert: true,
@@ -94,20 +95,6 @@ export class OptionsJS {
             cssClass: "center-text",
             focusable: false,
             width: 70
-        },
-        {
-            name: "Last Hits",
-            field: "hitHistory",
-            id: "hitHistory",
-            sortable: false,
-            resizable: false,
-            formatter: function () {
-                return '<span class="pointer">last hits</span>';
-            },
-            cannotTriggerInsert: true,
-            focusable: false,
-            cssClass: "center-text underline",
-            width: 66
         },
         {
             name: "Last Hit On",
@@ -139,7 +126,7 @@ export class OptionsJS {
             sortable: false,
             resizable: false,
             formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
-                return '<img style="cursor: pointer;" src="./images/gear-icon.png">';
+                return '<img class="pointer" src="./images/gear-icon.png">';
             },
             cannotTriggerInsert: true,
             focusable: false,
@@ -158,12 +145,13 @@ export class OptionsJS {
     };
 
     private readonly $storageDropdown = $('#storage-dropdown');
+    private readonly $configFooter = $('#configFooter');
     private readonly $exportConfigButton = $('#exportConfig');
     private readonly $importConfigButton = $('#importConfig');
     private readonly $configTextArea = $('#configTextArea');
-    private readonly $deleteAllButton = $('#delete-all-button');
-    private readonly $showLogsButton = $('#show-logs-button');
+    private readonly $systemSettingsButton = $('#system-settings-button');
     private slickgrid: Slick.Grid<UrlPattern> | null = null;
+    private static contextMenuOpenForRow: number = -1;
 
     public async init(): Promise<void> {
         //Update storage dropdown
@@ -250,10 +238,10 @@ export class OptionsJS {
                         urlPattern.delayInMs
                             = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs) || 0;
 
-                        //TODO: fix this n^2 time complexity
+                        //only add the pattern if it doesn't already exist
                         if (existingConfig.filter(ec => ec.pattern === urlPattern.pattern
                             && ec.isRegex === urlPattern.isRegex).length === 0) {
-                            //only add the pattern if it doesn't already exist
+
                             existingConfig.push(urlPattern);
                             importedCount++;
                         }
@@ -282,62 +270,51 @@ ${error.message}`;
             }
         });
 
-        this.$deleteAllButton.on('click', async () => {
+        this.$systemSettingsButton.on('click', async (event) => {
             try {
-                var promptText = prompt("Warning: all saved settings will be deleted. Type 'delete all' below to confirm deletion:") || '';
-                if (promptText.toLowerCase().replaceAll("'", "") === "delete all") {
-                    let storageApi = await StorageApiFactory.getStorageApi();
+                const storageApi = await StorageApiFactory.getStorageApi();
 
-                    //This will essentially factory reset the extension, not just remove the urls but that's okay.
-                    storageApi.clearAllSettings();
+                let menu: ContextMenu | null = null;
 
-                    //TODO: Logger is not thread-safe. So we can only have one writer in the entire application
-                    alert("All options cleared");
-                    location.reload();
+                let dontCloseLastTabSetting = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
+                if (dontCloseLastTabSetting == null || dontCloseLastTabSetting == undefined) {
+                    dontCloseLastTabSetting = true;
                 }
-            } catch (error: any) {
-                const errorMessage = `Something went wrong:
-${error.message}`;
-                console.error(errorMessage);
-                alert(errorMessage);
-            }
-        });
+                const closeLastTabCheckbox = new CheckboxOption("Prevent browser shutdown on last tab close", dontCloseLastTabSetting,
+                    async (checked: boolean) => {
+                        storageApi.SetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY, checked);
+                    });
 
-        //make slickgrid checkboxes more responsive
-        $('#main-grid').on('blur', 'input.editor-checkbox', function () {
-            Slick.GlobalEditorLock.commitCurrentEdit();
-        });
+                const showLogsButton = new LinkButton("Extension logs", async () => {
+                    let modal: ModalWindow | null = null;
 
-        this.$showLogsButton.on('click', async (event) => {
-            let modal: ModalWindow | null = null;
+                    function renderLogs(iterator: Generator<LogRecord>, take: number, minLogLevel: LogLevel): boolean {
+                        if (isNaN(take) || take <= 0) {
+                            throw new Error(`'take' must be a positive number`);
+                        }
 
-            function renderLogs(iterator: Generator<LogRecord>, take: number, minLogLevel: LogLevel): boolean {
-                if (isNaN(take) || take <= 0) {
-                    throw new Error(`'take' must be a positive number`);
-                }
+                        let logRecords: LogRecord[] = [];
+                        let iteration: IteratorResult<LogRecord, any> | null = null;
+                        while (take > 0 && (iteration = iterator.next()) && !iteration.done) {
+                            let logRecord = LogRecord.instantiate(iteration.value);
 
-                let logRecords: LogRecord[] = [];
-                let iteration: IteratorResult<LogRecord, any> | null = null;
-                while (take > 0 && (iteration = iterator.next()) && !iteration.done) {
-                    let logRecord = LogRecord.instantiate(iteration.value);
+                            if (logRecord.type < minLogLevel) {
+                                continue;
+                            }
 
-                    if (logRecord.type < minLogLevel) {
-                        continue;
-                    }
+                            logRecords.push(logRecord);
+                            take--;
+                        }
 
-                    logRecords.push(logRecord);
-                    take--;
-                }
+                        //Data isn't exactly chronologically sorted due to race conditions. So we sort it here.
+                        logRecords = logRecords.sort( //desc
+                            (a: LogRecord, b: LogRecord) => a.date === b.date ? 0 : (a.date > b.date ? -1 : 1)
+                        );
 
-                //Data isn't exactly chronologically sorted due to race conditions. So we sort it here.
-                logRecords = logRecords.sort( //desc
-                    (a: LogRecord, b: LogRecord) => a.date === b.date ? 0 : (a.date > b.date ? -1 : 1)
-                );
-
-                const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
-                const recordCount = logRecords.length;
-                const $bodyContent = $(`<div style="font-family: monospace; max-height: 60%; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
-                const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
+                        const html = logRecords.map((logRecord: LogRecord) => logRecord.renderHtml()).join('');
+                        const recordCount = logRecords.length;
+                        const $bodyContent = $(`<div style="font-family: monospace; max-height: 60%; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
+                        const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
                         <div style="width: 20%;">Showing ${recordCount} recent log${recordCount === 1 ? '' : 's'}</div>
                         <div style="width: 20%;">
                             <label for="log-level">Log Level:</label>
@@ -350,47 +327,95 @@ ${error.message}`;
                         </div>
                     </div>`);
 
-                $headerContent.find('#log-level').val(minLogLevel);
+                        $headerContent.find('#log-level').val(minLogLevel);
 
-                if (!modal) {
-                    modal = new ModalWindow('logs-modal', {
-                        show: true,
-                        mode: null, // Disable modal mode, allow click outside to close
-                        headerContent: $headerContent,
-                        htmlContent: $bodyContent
-                    }); //just creating the object will display the modal
-                } else {
-                    modal.initialize($headerContent, $bodyContent);
-                }
+                        if (!modal) {
+                            modal = new ModalWindow('logs-modal', {
+                                show: true,
+                                mode: null, // Disable modal mode, allow click outside to close
+                                headerContent: $headerContent,
+                                htmlContent: $bodyContent
+                            }); //just creating the object will display the modal
+                        } else {
+                            modal.initialize($headerContent, $bodyContent);
+                        }
 
-                $('#log-level').off('change').on('change', async (event: any) => {
-                    let minLogLevel = parseInt(event.target.value) as LogLevel;
-                    const sessionStorage = new SessionStorageApi();
-                    await sessionStorage.SetByKey('MIN_LOG_LEVEL', minLogLevel);
+                        $('#log-level').off('change').on('change', async (event: any) => {
+                            let minLogLevel = parseInt(event.target.value) as LogLevel;
+                            const sessionStorage = new SessionStorageApi();
+                            await sessionStorage.SetByKey('MIN_LOG_LEVEL', minLogLevel);
 
-                    //Start over by getting a new iterator
-                    const newLogIterator = await Logger.getLogsIterator(false);
-                    renderLogs(newLogIterator, take, minLogLevel);
+                            //Start over by getting a new iterator
+                            const newLogIterator = await Logger.getLogsIterator(false);
+                            renderLogs(newLogIterator, take, minLogLevel);
+                        });
+
+                        const isEndOfLogs = !!iteration?.done;
+                        return isEndOfLogs;
+                    }
+
+                    try {
+                        const sessionStorage = new SessionStorageApi();
+                        const maxLogCount = Logger.KEEP_LAST_N_LOGS; //render all logs in the buffer
+                        const logIterator = await Logger.getLogsIterator(false);
+
+                        let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
+                        const minLogLevel = userSelectedMinLogLevel || (Environment.isProd() ? LogLevel.Warning : LogLevel.Debug);
+                        renderLogs(logIterator, maxLogCount, minLogLevel);
+                        menu?.remove();
+                    } catch (error: any) {
+                        const errorMessage = `Could not show logs.
+${error.message}`;
+                        console.error(errorMessage);
+                        alert(errorMessage);
+                    }
                 });
 
-                const isEndOfLogs = !!iteration?.done;
-                return isEndOfLogs;
-            }
+                const deleteAllSettingsButton = new LinkButton("Factory reset", async () => {
+                    try {
+                        let promptText = prompt("Warning: all your settings will be deleted. Type 'delete all' below to confirm deletion:") || '';
+                        if (promptText.toLowerCase().replaceAll("'", "") === "delete all") {
+                            const storageApi = await StorageApiFactory.getStorageApi();
+                            storageApi.clearAllSettings();
 
-            try {
-                const sessionStorage = new SessionStorageApi();
-                const maxLogCount = Logger.KEEP_LAST_N_LOGS; //render all logs for now
-                const logIterator = await Logger.getLogsIterator(false);
+                            //TODO: Logger is not thread-safe. So we can only have one writer in the entire application
+                            alert("All options cleared");
+                            location.reload();
+                        } else {
+                            menu?.remove();
+                        }
+                    } catch (error: any) {
+                        const errorMessage = `Something went wrong:
+${error.message}`;
+                        console.error(errorMessage);
+                        alert(errorMessage);
+                    }
+                }, "color: red;");
 
-                let userSelectedMinLogLevel = await sessionStorage.GetByKey('MIN_LOG_LEVEL') as LogLevel;
-                const minLogLevel = userSelectedMinLogLevel || (Environment.isProd() ? LogLevel.Warning : LogLevel.Debug);
-                renderLogs(logIterator, maxLogCount, minLogLevel);
+                const drawerOpen = this.$configFooter.is(':visible');
+                const showImportExportDrawerCheckbox = new LinkButton(`${(drawerOpen ? 'Hide' : 'Show')} Import/Export drawer`,
+                    async () => {
+                        this.$configFooter.toggle();
+                        menu?.remove();
+                    });
+
+                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton], () => {
+                    //on close event
+                });
+                menu.render(this.$systemSettingsButton, 290, 120, "up");
+
+                event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
             } catch (error: any) {
-                const errorMessage = `Could not show logs.
+                const errorMessage = `Something went wrong.
 ${error.message}`;
                 console.error(errorMessage);
                 alert(errorMessage);
             }
+        });
+
+        //make slickgrid checkboxes more responsive
+        $('#main-grid').on('blur', 'input.editor-checkbox', function () {
+            Slick.GlobalEditorLock.commitCurrentEdit();
         });
     }
 
@@ -431,32 +456,7 @@ ${error.message}`;
                     return;
                 }
 
-                if (args.grid.getColumns()[args.cell].id === "hitHistory") {
-                    let lastHits = gridRow.lastHits as string[];
-                    let message = "Not hit yet!";
-                    if (Array.isArray(lastHits) && lastHits.length > 0) {
-                        let messageBuilder = [`Showing last ${UrlPattern.LAST_HIT_HISTORY_COUNT} hits (most recent first)`];
-                        console.log(`Printing hits for pattern: ${gridRow.pattern}`);
-                        let index = 1;
-                        for (let i = lastHits.length - 1; i >= 0; i--) {
-                            //Trim the url so it fits in the alert box
-                            const maxUrlLength = 50;
-                            let lastHitTrimmed = lastHits[i].length > maxUrlLength ?
-                                lastHits[i].substring(0, maxUrlLength - 3) + "..."
-                                : lastHits[i];
-                            messageBuilder.push(`${index}. ${lastHitTrimmed}`);
-
-                            //incase urls are really long, let users at least be able to check F12 console
-                            console.log(`${index}. ${lastHits[i]}`);
-
-                            index++;
-                        }
-                        messageBuilder.push(""); //empty line 
-                        messageBuilder.push("Note: Check F12 console for full urls if trimmed");
-                        message = messageBuilder.join("\r\n");
-                    }
-                    alert(message);
-                } else if (args.grid.getColumns()[args.cell].id === "delayInMs") {
+                if (args.grid.getColumns()[args.cell].id === "delayInMs") {
                     let currentDelay = gridRow.delayInMs > 0 ? gridRow.delayInMs : 1000;
                     let delay = prompt(`Enter delay in milliseconds before tab should be closed (max ${UrlPattern.MAX_DELAY_IN_MILLISECONDS / 1000} seconds, 0 = disabled)`,
                         currentDelay.toString());
@@ -468,71 +468,7 @@ ${error.message}`;
                         this.slickgrid!.render();
                     }
                 } else if (args.grid.getColumns()[args.cell].id === "settings") {
-                    const saveSettings = async () => {
-                        this.slickgrid!.invalidateAllRows();
-                        this.slickgrid!.render();
-                        await this.saveSettings();
-                    };
-
-                    let menu: ContextMenu | null = null;
-
-                    const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => {
-                        gridRow.isRegex = checked;
-                        await saveSettings();
-                    });
-
-                    let currentValue = "Url";
-                    if (gridRow.matchBy === MatchBy.Url) {
-                        currentValue = "Url";
-                    } else if (gridRow.matchBy === MatchBy.Title) {
-                        currentValue = "Title";
-                    } else if (gridRow.matchBy === MatchBy.Url_or_Title) {
-                        currentValue = "Url or Title";
-                    }
-
-                    const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => {
-                        if (dropdown === "Url") {
-                            gridRow.matchBy = MatchBy.Url;
-                        } else if (dropdown === "Title") {
-                            gridRow.matchBy = MatchBy.Title;
-                        } else if (dropdown === "Url or Title") {
-                            gridRow.matchBy = MatchBy.Url_or_Title;
-                        } else {
-                            return;
-                        }
-                        await saveSettings();
-                    });
-
-                    const resetHitsButton = new LinkButton("Reset hits", async () => {
-                        if (confirm("Are you sure you want to reset hits?")) {
-                            gridRow.hitCount = 0;
-                            gridRow.lastHits = [];
-                            gridRow.lastHitOn = null;
-                            await saveSettings();
-                        }
-                        menu?.removeAll();
-                    });
-
-                    const deleteRowButton = new LinkButton("Delete", async () => {
-                        if (confirm("Are you sure you want to delete?")) {
-                            args.grid.getData().splice(args.row, 1);
-                            this.slickgrid!.invalidateAllRows();
-                            this.slickgrid!.render();
-                            await this.saveSettings();
-                        }
-                        menu?.removeAll();
-                    }, "color: red;");
-
-                    const $clickedCell = $(args.grid.getCellNode(args.row, args.cell));
-                    menu = new ContextMenu([isRegexCheckbox, matchByDropdown, resetHitsButton, deleteRowButton],
-                        () => { $clickedCell.css("background-color", ""); });
-
-                    //color the clicked cell to make more obvious
-                    $clickedCell.css("background-color", "cornsilk");
-
-                    console.log($clickedCell);
-                    menu.render($clickedCell);
-                    event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
+                    this.showContextMenu(args.grid, args.row, args.cell, event);
                 }
             }
             catch (error: any) {
@@ -596,10 +532,117 @@ ${error.message}`;
             await this.saveSettings();
         });
     }
+
+    private showContextMenu(grid: Slick.Grid<UrlPattern>, row: number, cell: number, event: Slick.EventData): void {
+        const saveSettings = async () => {
+            this.slickgrid!.invalidateAllRows();
+            this.slickgrid!.render();
+            await this.saveSettings();
+        };
+        const gridRow = grid.getData()[row];
+        let menu: ContextMenu | null = null;
+
+        const lastHitsButton = new LinkButton("Last hits", () => {
+            let lastHits = gridRow.lastHits as string[];
+            let message = "Not hit yet!";
+            if (Array.isArray(lastHits) && lastHits.length > 0) {
+                let messageBuilder = [`Showing last ${UrlPattern.LAST_HIT_HISTORY_COUNT} hits (most recent first)`];
+                console.log(`Printing hits for pattern: ${gridRow.pattern}`);
+                let index = 1;
+                for (let i = lastHits.length - 1; i >= 0; i--) {
+                    //Trim the url so it fits in the alert box
+                    const maxUrlLength = 50;
+                    let lastHitTrimmed = lastHits[i].length > maxUrlLength ?
+                        lastHits[i].substring(0, maxUrlLength - 3) + "..."
+                        : lastHits[i];
+                    messageBuilder.push(`${index}. ${lastHitTrimmed}`);
+
+                    //incase urls are really long, let users at least be able to check F12 console
+                    console.log(`${index}. ${lastHits[i]}`);
+
+                    index++;
+                }
+                messageBuilder.push(""); //empty line 
+                messageBuilder.push("Note: Check F12 console for full urls if trimmed");
+                message = messageBuilder.join("\r\n");
+            }
+            alert(message);
+            menu?.remove();
+            return Promise.resolve();
+        });
+
+        const isRegexCheckbox = new CheckboxOption("Is RegEx?", gridRow.isRegex, async (checked: boolean) => {
+            gridRow.isRegex = checked;
+            await saveSettings();
+        }, 'user-select: none;');
+
+        let currentValue = "Url";
+        if (gridRow.matchBy === MatchBy.Url) {
+            currentValue = "Url";
+        } else if (gridRow.matchBy === MatchBy.Title) {
+            currentValue = "Title";
+        } else if (gridRow.matchBy === MatchBy.Url_or_Title) {
+            currentValue = "Url or Title";
+        }
+
+        const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => {
+            if (dropdown === "Url") {
+                gridRow.matchBy = MatchBy.Url;
+            } else if (dropdown === "Title") {
+                gridRow.matchBy = MatchBy.Title;
+            } else if (dropdown === "Url or Title") {
+                gridRow.matchBy = MatchBy.Url_or_Title;
+            } else {
+                return;
+            }
+            await saveSettings();
+        });
+
+        const resetHitsButton = new LinkButton("Reset hits", async () => {
+            if (confirm("Are you sure you want to reset hits?")) {
+                gridRow.hitCount = 0;
+                gridRow.lastHits = [];
+                gridRow.lastHitOn = null;
+                await saveSettings();
+            }
+            menu?.remove();
+        });
+
+        const deleteRowButton = new LinkButton("Delete", async () => {
+            if (confirm("Are you sure you want to delete?")) {
+                grid.getData().splice(row, 1);
+                this.slickgrid!.invalidateAllRows();
+                this.slickgrid!.render();
+                await this.saveSettings();
+            }
+            menu?.remove();
+        }, "color: red;");
+
+        const $clickedCell = $(grid.getCellNode(row, cell));
+
+        //color the clicked cell to make it more obvious
+        $clickedCell.css("background-color", "cornsilk");
+
+        menu = new ContextMenu([lastHitsButton, isRegexCheckbox, matchByDropdown, resetHitsButton, deleteRowButton],
+            () => {
+                //$clickedCell won't exist if the grid gets re-rendered due to a setting change
+                $clickedCell.css("background-color", "");
+                $('.option-icon.d-block').removeClass('d-block');
+                OptionsJS.contextMenuOpenForRow = -1;
+            });
+            
+        menu.render($clickedCell, 160, 150);
+
+        //also show setting icons for the row
+        $clickedCell.siblings('.search-pattern-cell').children('.option-icon').addClass('d-block');
+        //if the user changes a setting in the context menu the grid will get re-rendered, so we have to tell it which row we're still editing
+        OptionsJS.contextMenuOpenForRow = row;
+
+        event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
+    }
 }
 
 //equivalent to $(document).ready(...)
 $(function () {
     new OptionsJS().init();
 });
-

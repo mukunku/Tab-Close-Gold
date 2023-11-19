@@ -118,7 +118,6 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				await closeTheTab(tabId!);
 			}
 
-			config.lastHit = null; //this field isn't used anymore
 			config.hitCount++;
 			config.lastHitOn = new Date();
 

@@ -108,6 +108,10 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	opacity: 50%;
 }
 
+#delete-all-button {
+	margin-bottom: 7px;
+}
+
 /*Modal CSS Start*/
 .md-dialog {
 	display: none;
@@ -179,8 +183,8 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	position: absolute;
 	top: 0;
 	left: 0;
-	height: 122px;
-	width: 160px;
+	height: 5px;
+	width: 5px;
 	background-color: #fff;
 	border: 1px solid #000;
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
@@ -191,7 +195,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 
 .context-menu .option {
 	padding-top: 10px;
-	line-height: 14px;
+	line-height: 16px;
 }
 
 .context-menu .linkbutton {
@@ -204,5 +208,27 @@ div:not(.new-row)>.r3.slick-cell:empty {
 }
 
 .context-menu .checkbox-label {
-	padding-left: 4px;
+	margin-top: 2px;
+}
+
+.slick-cell .option-icon {
+	display: none;
+}
+
+.slick-cell:hover .option-icon {
+	display: block;
+}
+
+.d-block {
+	display: block !important;
+}
+
+.d-none {
+	display: none;
+}
+
+#system-settings-button > img {
+	filter: contrast(100%) brightness(100%) grayscale(0%) saturate(100%) hue-rotate(200deg) sepia(0%)  invert(0%) blur(0px);
+	vertical-align: middle;
+	margin-top: -2px;
 }

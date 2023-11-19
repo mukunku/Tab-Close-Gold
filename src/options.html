@@ -19,7 +19,7 @@
 			<span class="select-none"> = wild card. Example: </span><span>face*.com</span>
 		</div>
 		<div class="float-right">
-			<input type="button" value="Delete All URLs" id="delete-all-button" style="margin-bottom: 7px;" />
+			<input type="button" value="Delete All URLs" id="delete-all-button" />
 		</div>
 		<div id="main-grid">
 		</div>
@@ -42,10 +42,10 @@
 				</div>
 			</div>
 			<div class="float-right">
-				<button id="show-logs-button" class="float-right">Logs</button>
+				<button id="system-settings-button"><img src="./images/gear-icon.png"> System Settings</button>
 			</div>
 		</div>
-		<div id="configFooter">
+		<div id="configFooter" class="d-none">
 			<textarea id="configTextArea" style="resize: vertical; width: 100%; margin-bottom: 10px;" rows="5"
 				autocomplete="off" placeholder="Export will be shown here.
 Import will read from here."></textarea>
@@ -53,7 +53,7 @@ Import will read from here."></textarea>
 				class="float-left" />
 			<input type="button" value="Import Additional Configuration" id="importConfig" style="height: 30px;"
 				class="float-right" />
-			<div style="clear:both;" />
+			<div style="clear:both;"></div>
 		</div>
 	</div>
 </body>

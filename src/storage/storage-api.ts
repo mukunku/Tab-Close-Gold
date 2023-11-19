@@ -6,6 +6,7 @@ import * as browser from "webextension-polyfill";
 
 export abstract class StorageApi {
     public static readonly LAST_SAVE_DATE_KEY: string = "last-save-date";
+    public static readonly DONT_CLOSE_LAST_TAB_KEY: string = "dont-close-last-tab";
     private static readonly STORAGE_TYPE_CLOUD = {
         'useCloudStorage': true
     };
