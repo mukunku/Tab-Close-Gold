@@ -1,6 +1,7 @@
 import { Logger } from "./helpers/logger";
 import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
+import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
 
@@ -155,12 +156,18 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 	}
 }
 
-async function closeTheTab(tabId: number) {
+async function closeTheTab(tabId: number): Promise<void> {
 	//check if this is the only tab
 	let tabs = await browser.tabs.query({ windowType: 'normal' });
 	if (tabs && tabs.length === 1) {
-		//lets open a blank tab before closing this one to prevent an infinite loop which can happen in rare cases
-		await browser.tabs.create({ url: "about:blank" });
+		//TODO: This is ugly, find a better way than checking settings on the fly
+		const storageApi = await StorageApiFactory.getStorageApi();
+		const dontCloseLastTab = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
+
+		if (dontCloseLastTab || dontCloseLastTab === undefined || dontCloseLastTab === null) {
+			//lets open a blank tab before closing the last one
+			await browser.tabs.create({ url: "about:blank" });
+		}
 	}
 
 	//Close the tab
@@ -185,7 +192,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 
 			if (key?.startsWith("config-")) {
 				haveSavedConfigsChanged = true;
-			} else { 
+			} else {
 				Logger.logTrace(
 					`Storage key "${key}" in namespace "${namespace}" changed. ` +
 					`Old value was "${oldValue?.toString().substring(0, 20)}", new value is "${newValue?.toString().substring(0, 20)}".`

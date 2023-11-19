@@ -393,7 +393,7 @@ ${error.message}`;
                 }, "color: red;");
 
                 const drawerOpen = this.$configFooter.is(':visible');
-                const showImportExportDrawerCheckbox = new LinkButton(`${(drawerOpen ? 'Hide' : 'Show')} Import/Export drawer`,
+                const showImportExportDrawerCheckbox = new LinkButton(`${(drawerOpen ? 'Hide' : 'Show')} import/export drawer`,
                     async () => {
                         this.$configFooter.toggle();
                         menu?.remove();
