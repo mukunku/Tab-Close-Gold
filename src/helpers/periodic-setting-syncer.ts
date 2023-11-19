@@ -64,7 +64,7 @@ export class PeriodicSettingSyncer {
                 //config changes by the user in my opinion.
                 this.configs = await storageApi.getSettings();
 
-                this.logger?.logDebug("PeriodicSettingSyncer: Option changes detected. Using latest settings from the options page. ");
+                this.logger?.logTrace("PeriodicSettingSyncer: Option changes detected. Using latest settings from the options page.");
                 if (this.hasNewHits) {
                     this.logger?.logWarning(`Hit statistics recorded in the last ${PeriodicSettingSyncer.SYNC_FREQUENCY_MS}ms couldn't be saved due to config changes.`);
                 }
