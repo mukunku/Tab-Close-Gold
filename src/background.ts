@@ -1,3 +1,4 @@
+import { Mutex } from "async-mutex";
 import { Logger } from "./helpers/logger";
 import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
@@ -16,7 +17,7 @@ browser.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) =
 	}, 10);
 });
 
-const regexpCache = new Map();
+const regexpCache = new Map<string, RegExp>();
 function containsString(input?: string, searchPattern?: string, isRegex?: boolean): boolean {
 	if (!input || !searchPattern) {
 		return false;
@@ -26,7 +27,7 @@ function containsString(input?: string, searchPattern?: string, isRegex?: boolea
 	if (!isRegex) {
 		isHit = input.indexOf(searchPattern) >= 0;
 	} else {
-		let regex: RegExp = regexpCache.get(searchPattern);
+		let regex = regexpCache.get(searchPattern);
 		if (!regex) {
 			regex = new RegExp(searchPattern);
 			regexpCache.set(searchPattern, regex);
@@ -65,7 +66,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				continue;
 			}
 
-			Logger.logTrace(`Checking '${tabUrl}' and '${tabTitle}' against pattern ${config.pattern}`);
+			Logger.logTrace(`Checking '${tabUrl}' and '${tabTitle}' against pattern ${config.pattern} with ${MatchBy[config.matchBy]}`);
 
 			//handle wild cards if necessary
 			var isRegex = config.isRegex;
@@ -105,32 +106,56 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				continue;
 			}
 
+			const saveHit = () => {
+				config.hitCount++;
+				config.lastHitOn = new Date();
+
+				//We keep a rolling window of hits
+				config.lastHits = config.lastHits || [];
+				config.lastHits.push(matchedPattern);
+				while (config.lastHits.length > UrlPattern.LAST_HIT_HISTORY_COUNT) {
+					config.lastHits.shift();
+				}
+
+				//Tell the syncer there's new statistics to save
+				periodicSettingSyncer.hasNewHits = true;
+			}
+
 			if (config.delayInMs > 0) {
 				let timeout = Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS);
 
 				Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. Scheduling tab to be closed in ${timeout}ms`);
 
 				setTimeout(async () => {
-					Logger.logDebug(`Scheduled tab closing for '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
-					await closeTheTab(tab.id!);
+					let wasClosed = false;
+					try {
+						wasClosed = await closeTheTab(tabId!);
+						if (wasClosed) {
+							saveHit();
+						}
+					} finally {
+						if (wasClosed) {
+							Logger.logDebug(`Scheduled tab closing for '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
+						} else {
+							Logger.logDebug(`Scheduled tab was already closed for '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
+						}
+					}
 				}, timeout);
-			} else {
-				Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. Closing tab.`);
-				await closeTheTab(tabId!);
+			} else { // close the tab immediately
+				let wasClosed = false;
+				try {
+					wasClosed = await closeTheTab(tabId!);
+					if (wasClosed) {
+						saveHit();
+					}
+				} finally {
+					if (wasClosed) {
+						Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. Closing tab.`);
+					} else {
+						Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
+					}
+				}
 			}
-
-			config.hitCount++;
-			config.lastHitOn = new Date();
-
-			//We keep a rolling window of hits
-			config.lastHits = config.lastHits || [];
-			config.lastHits.push(matchedPattern);
-			while (config.lastHits.length > UrlPattern.LAST_HIT_HISTORY_COUNT) {
-				config.lastHits.shift();
-			}
-
-			//Tell the syncer there's new statistics to save
-			periodicSettingSyncer.hasNewHits = true;
 
 			return; //we're done! 
 		}
@@ -156,22 +181,55 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 	}
 }
 
-async function closeTheTab(tabId: number): Promise<void> {
-	//check if this is the only tab
-	let tabs = await browser.tabs.query({ windowType: 'normal' });
-	if (tabs && tabs.length === 1) {
-		//TODO: This is ugly, find a better way than checking settings on the fly
-		const storageApi = await StorageApiFactory.getStorageApi();
-		const dontCloseLastTab = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
+async function closeTheTab(tabId: number): Promise<boolean> {
+	//We need exclusive access to tabs so hit statistics are accurate. This is because
+	//we now allow matching by title and url so if both match that counts as two hits without locking.
+	const release = await (await acquireTabLock(tabId)).acquire();
+	try {
+		//check if this is the only tab
+		let tabs = await browser.tabs.query({ windowType: 'normal' });
 
-		if (dontCloseLastTab || dontCloseLastTab === undefined || dontCloseLastTab === null) {
-			//lets open a blank tab before closing the last one
-			await browser.tabs.create({ url: "about:blank" });
+		if (tabs.length === 1) {
+			//TODO: This is ugly, find a better way than checking settings on the fly
+			const storageApi = await StorageApiFactory.getStorageApi();
+			const dontCloseLastTab = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
+
+			if (dontCloseLastTab || dontCloseLastTab === undefined || dontCloseLastTab === null) {
+				//lets open a blank tab before closing the last one
+				await browser.tabs.create({ url: "about:blank" });
+			}
+		}
+
+		if (tabs.filter(tab => tab.id === tabId).length > 0) {
+			//close the tab
+			(await Logger.getInstance()).logTrace(`Closing tab id: ${tabId}`);
+			await browser.tabs.remove(tabId);
+			return true;
+		} else {
+			//tab doesn't exist anymore. probably already closed by another rule
+			return false;
+		}
+	} finally {
+		release();
+	}
+}
+
+const tabIdMutex = new Map<number, Mutex>(); //This gets periodically cleared as the background script goes inactive
+async function acquireTabLock(tabId: number): Promise<Mutex> {
+	let mutex = tabIdMutex.get(tabId);
+	if (!mutex) {
+		const release = await new Mutex().acquire();
+		try {
+			mutex = tabIdMutex.get(tabId);
+			if (!mutex) {
+				mutex = new Mutex();
+				tabIdMutex.set(tabId, mutex);
+			}
+		} finally {
+			release();
 		}
 	}
-
-	//Close the tab
-	await browser.tabs.remove(tabId);
+	return mutex;
 }
 
 browser.storage.onChanged.addListener(async (changes, namespace) => {
