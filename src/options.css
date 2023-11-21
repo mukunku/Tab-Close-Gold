@@ -135,6 +135,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	background-color: #fefefe;
 	width: 80%;
 	margin: 10% auto;
+	min-width: 400px;
 }
 
 .md-dialog .md-dialog-header {
@@ -146,6 +147,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	line-height: 1.667em;
 	padding: 0.125em 0.25em;
 	background-color: #DDD;
+	white-space: nowrap;
 }
 
 .md-dialog .md-dialog-header-close-btn {

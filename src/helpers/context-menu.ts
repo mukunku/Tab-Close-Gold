@@ -151,6 +151,11 @@ export class ContextMenu {
         // Show the modal
         this.$lastModal.show();
 
+        // Move it to within the viewport
+        if (!ContextMenu.isElementInViewport(this.$lastModal)) {
+            this.$lastModal.css('left', (srcElement.offset()?.left || 0) + 24 - (width));
+        }
+
         $(window).on('keyup', (event: any) => {
             if (event.key === "Escape") {
                 this.$lastModal?.remove();
@@ -164,5 +169,19 @@ export class ContextMenu {
                 }
             }
         });
+    }
+
+    private static isElementInViewport(element: JQuery): boolean {
+        if (!(element?.length > 0)) {
+            return true;
+        }
+
+        var rect = element[0].getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
     }
 }

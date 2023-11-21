@@ -337,8 +337,8 @@ ${error.message}`;
                         const recordCount = logRecords.length;
                         const $bodyContent = $(`<div style="font-family: monospace; max-height: 60%; text-wrap: wrap; overflow: auto;">${html || '<p>No logs yet.</p>'}</div>`);
                         const $headerContent = $(`<div style="display: flex; justify-content: space-between;">
-                        <div style="width: 20%;">Showing ${recordCount} recent log${recordCount === 1 ? '' : 's'}</div>
-                        <div style="width: 20%;">
+                        <div>Showing ${recordCount} recent log${recordCount === 1 ? '' : 's'}</div>
+                        <div style="margin-right: 30px;">
                             <label for="log-level">Log Level:</label>
                             <select name="log-level" id="log-level">
                                 ${(!Environment.isProd() ? '<option value="1">Trace</option>' : '')}
@@ -441,6 +441,11 @@ ${error.message}`;
         //make slickgrid checkboxes more responsive
         $('#main-grid').on('blur', 'input.editor-checkbox', function () {
             Slick.GlobalEditorLock.commitCurrentEdit();
+        });
+
+        //Hide context menu's on resize because they look weird otherwise
+        $(window).on("resize", function() {
+            ContextMenu.removeAll();
         });
     }
 
