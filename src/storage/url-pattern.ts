@@ -65,12 +65,11 @@ export class UrlPattern {
                 title.startsWith('chrome://') ||
                 title.startsWith('about://') || 
                 title.startsWith('moz-extension:') || 
-
-                //Chrome & Firefox system tab names for settings and extensions
                 title === 'Settings' ||
                 title === 'Extensions' ||
                 title === 'Add-ons Manager' || 
-                title === 'Extensions - Tab Close Gold'
+                title === 'Extensions - Tab Close Gold' ||
+                title.endsWith('/options.html')
             )));
     }
 }
