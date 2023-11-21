@@ -54,7 +54,7 @@ export class OptionsJS {
                         style="padding: 3px; opacity: 70%;">`);
                 }
 
-                if (urlPattern.matchBy == undefined || urlPattern.matchBy === MatchBy.Url || urlPattern.matchBy === MatchBy.Url_or_Title) {
+                if (urlPattern.matchBy === MatchBy.Url || urlPattern.matchBy === MatchBy.Url_or_Title) {
                     $html.prepend(`<img title="Match by Url" class="float-right option-icon" src="./images/link_12x12.png"
                         style="padding: 3px;">`);
                 }
@@ -299,7 +299,7 @@ ${error.message}`;
                 let menu: ContextMenu | null = null;
 
                 let dontCloseLastTabSetting = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
-                if (dontCloseLastTabSetting == null || dontCloseLastTabSetting == undefined) {
+                if (dontCloseLastTabSetting || dontCloseLastTabSetting == null || dontCloseLastTabSetting == undefined) {
                     dontCloseLastTabSetting = true;
                 }
                 const closeLastTabCheckbox = new CheckboxOption("Prevent browser shutdown on last tab close", dontCloseLastTabSetting,

@@ -1,5 +1,5 @@
 import { ChromeStorageType } from './chrome-storage-types';
-import { UrlPattern } from './url-pattern';
+import { MatchBy, UrlPattern } from './url-pattern';
 import * as LZString from 'lz-string';
 import { StorageUsage } from './storage-usage';
 import * as browser from "webextension-polyfill";
@@ -119,6 +119,22 @@ export abstract class StorageApi {
             //no items exist. use default demo data
             settings = UrlPattern.DEFAULT_SETTINGS;
         }
+
+        //make sure each setting has valid values. Only needed for new fields but double checking all fields can't hurt
+        settings = settings.map(urlPattern => {
+            urlPattern.pattern = urlPattern.pattern || "";
+            urlPattern.isRegex = urlPattern.isRegex === true ? true : false;
+            urlPattern.enabled = urlPattern.enabled === false ? false : true;
+            urlPattern.matchBy = urlPattern.matchBy in MatchBy ? urlPattern.matchBy : MatchBy.Url;
+            urlPattern.delayInMs = urlPattern.delayInMs !== null && !isNaN(urlPattern.delayInMs) 
+                ? urlPattern.delayInMs : 0;
+            urlPattern.hitCount = urlPattern.hitCount !== null && !isNaN(urlPattern.hitCount) 
+                ? urlPattern.hitCount : 0;
+            urlPattern.lastHitOn = urlPattern.lastHitOn !== undefined ? urlPattern.lastHitOn : null;
+            urlPattern.lastHits = urlPattern.lastHits || [];
+            return urlPattern;
+        });
+
         return settings;
     }
 

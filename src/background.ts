@@ -82,6 +82,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			let isHit = false;
 			const matchBy = config.matchBy || MatchBy.Url;
 			let matchedPattern: string = "";
+			let matchedBy: string = "";
 			if (tabUrl && (matchBy === MatchBy.Url || matchBy === MatchBy.Url_or_Title)) {
 				if (!config.isRegex) {
 					isHit = containsString(tabUrl.toLocaleLowerCase(), pattern.toLocaleLowerCase(), isRegex);
@@ -90,6 +91,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				}
 
 				matchedPattern = tabUrl;
+				matchedBy = "Url"
 			}
 
 			if (!isHit && tabTitle && (matchBy === MatchBy.Title || matchBy === MatchBy.Url_or_Title)) {
@@ -100,6 +102,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				}
 
 				matchedPattern = tabTitle;
+				matchedBy = "Title";
 			}
 
 			if (!isHit) {
@@ -124,7 +127,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			if (config.delayInMs > 0) {
 				let timeout = Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS);
 
-				Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. Scheduling tab to be closed in ${timeout}ms`);
+				Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Scheduling tab to be closed in ${timeout}ms`);
 
 				setTimeout(async () => {
 					let wasClosed = false;
@@ -135,9 +138,9 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 						}
 					} finally {
 						if (wasClosed) {
-							Logger.logDebug(`Scheduled tab closing for '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
+							Logger.logDebug(`Scheduled tab closing for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
 						} else {
-							Logger.logDebug(`Scheduled tab was already closed for '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
+							Logger.logDebug(`Scheduled tab was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
 						}
 					}
 				}, timeout);
@@ -150,9 +153,9 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 					}
 				} finally {
 					if (wasClosed) {
-						Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. Closing tab.`);
+						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Closing tab.`);
 					} else {
-						Logger.logDebug(`'${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
+						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
 					}
 				}
 			}
