@@ -201,54 +201,76 @@ export class OptionsJS {
         });
 
         this.$exportConfigButton.on('click', () => {
-            let exportConfig = this.slickgrid?.getData();
-            let output = new Array(exportConfig.length);
-            for (var i = 0; i < exportConfig.length; i++) {
-                output[i] = {
-                    pattern: exportConfig[i].pattern,
-                    enabled: exportConfig[i].enabled,
-                    isRegex: exportConfig[i].isRegex
-                };
+            try {
+                let exportConfig = this.slickgrid?.getData() as UrlPattern[];
+                let output = new Array(exportConfig.length);
+                for (var i = 0; i < exportConfig.length; i++) {
+                    output[i] = {
+                        pattern: exportConfig[i].pattern
+                    };
 
-                if (exportConfig[i].delayInMs > 0) {
-                    output[i].delayInMs = exportConfig[i].delayInMs;
+                    if (exportConfig[i].delayInMs > 0) {
+                        output[i].delayInMs = exportConfig[i].delayInMs;
+                    }
+
+                    if (!exportConfig[i].enabled) {
+                        output[i].enabled = false;
+                    }
+
+                    if (exportConfig[i].isRegex) {
+                        output[i].isRegex = true;
+                    }
+
+                    if (exportConfig[i].matchBy != MatchBy.Url) {
+                        output[i].matchBy = MatchBy[exportConfig[i].matchBy];
+                    }
                 }
+                this.$configTextArea.val(JSON.stringify(output));
+            } catch (error: any) {
+                const errorMessage = `Something went wrong
+${error.message}`;
+                console.error(errorMessage);
+                alert(errorMessage);
             }
-            this.$configTextArea.val(JSON.stringify(output));
         });
 
         this.$importConfigButton.on('click', async () => {
             try {
-                if (!this.slickgrid || !this.slickgrid.render)
+                if (!this.slickgrid || !this.slickgrid.render) {
                     return; //Is this check still needed?
+                }
 
-                var jsonToImport = <string>this.$configTextArea.val();
-                if (!jsonToImport)
+                const jsonToImport = this.$configTextArea.val() as string;
+                if (!jsonToImport) {
                     return;
+                }
 
-                var importConfig: UrlPattern[] = JSON.parse(jsonToImport);
-                let existingConfig: UrlPattern[] = this.slickgrid.getData();
+                var importConfig: any[] = JSON.parse(jsonToImport);
+                let existingConfigs: UrlPattern[] = this.slickgrid.getData();
                 let importedCount = 0;
-                for (var i = 0; i < importConfig.length; i++) {
-                    var config = importConfig[i];
+                for (let i = 0; i < importConfig.length; i++) {
+                    const config = importConfig[i];
 
                     if (config && config.pattern && config.pattern.trim()) {
-                        let urlPattern = new UrlPattern(config.pattern.trim(), !!config.isRegex, config.matchBy);
-                        urlPattern.enabled = !!config.enabled;
-                        urlPattern.delayInMs
-                            = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs) || 0;
+                        const matchBy: string = config.matchBy || MatchBy[MatchBy.Url];
+                        let urlPattern = new UrlPattern(config.pattern.trim(), 
+                            !!config.isRegex, 
+                            MatchBy[matchBy as keyof typeof MatchBy]);
+
+                        urlPattern.enabled = config.enabled === false ? false : true;
+                        urlPattern.delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs || 0);
 
                         //only add the pattern if it doesn't already exist
-                        if (existingConfig.filter(ec => ec.pattern === urlPattern.pattern
-                            && ec.isRegex === urlPattern.isRegex).length === 0) {
-
-                            existingConfig.push(urlPattern);
+                        if (existingConfigs.filter(ec => ec.pattern === urlPattern.pattern
+                            && ec.isRegex === urlPattern.isRegex 
+                            && ec.matchBy === urlPattern.matchBy).length === 0) {
+                            existingConfigs.push(urlPattern);
                             importedCount++;
                         }
                     }
                 }
 
-                this.slickgrid.setData(existingConfig, false);
+                this.slickgrid.setData(existingConfigs, false);
                 this.slickgrid.invalidateAllRows();
                 this.slickgrid.render();
 
@@ -363,6 +385,9 @@ ${error.message}`;
                         const minLogLevel = userSelectedMinLogLevel || (Environment.isProd() ? LogLevel.Warning : LogLevel.Debug);
                         renderLogs(logIterator, maxLogCount, minLogLevel);
                         menu?.remove();
+
+                        //end any pending edits because the z-index for the textboxes in the grid appear over the logs modal
+                        Slick.GlobalEditorLock.commitCurrentEdit();
                     } catch (error: any) {
                         const errorMessage = `Could not show logs.
 ${error.message}`;
@@ -379,7 +404,7 @@ ${error.message}`;
                             storageApi.clearAllSettings();
 
                             //TODO: Logger is not thread-safe. So we can only have one writer in the entire application
-                            alert("All options cleared");
+                            alert("All settings cleared");
                             location.reload();
                         } else {
                             menu?.remove();
@@ -630,7 +655,7 @@ ${error.message}`;
                 $('.option-icon.d-block').removeClass('d-block');
                 OptionsJS.contextMenuOpenForRow = -1;
             });
-            
+
         menu.render($clickedCell, 160, 150);
 
         //also show setting icons for the row
