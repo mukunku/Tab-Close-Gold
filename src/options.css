@@ -18,6 +18,7 @@ input,
 button,
 textarea {
 	font-size: var(--main-font-size);
+	font-family: Arial, sans-serif !important;
 }
 
 #main {

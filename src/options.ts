@@ -531,6 +531,9 @@ ${error.message}`;
             newRow.isRegex = false;
             newRow.hitCount = 0;
             newRow.lastHits = [];
+            newRow.delayInMs = 0;
+            newRow.lastHitOn = null;
+            newRow.matchBy = MatchBy.Url;
 
             args.grid.getData().splice(args.grid.getDataLength(), 1, newRow);
             args.grid.invalidateRow(args.grid.getDataLength() - 1);
