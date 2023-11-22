@@ -16,6 +16,8 @@ The extension will sync your configs across browsers if you are using the synchr
 
 ![firefox browser icon](./images/firefox-icon_24x24.png) [Firefox extension](https://addons.mozilla.org/en-US/firefox/addon/tab-close-gold/)
 
+Visit the wiki to learn more about how to use the extension: https://github.com/mukunku/Tab-Close-Gold/wiki
+
 ## How to build locally
 
 Follow these steps to get the extension working locally.
