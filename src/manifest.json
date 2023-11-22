@@ -7,7 +7,7 @@
     "storage"
   ],
   "options_page": "./options.html",
-  "description": "Tired of ads passing by your ad blocker? Leftover Zoom tabs got you down? Want a simple extension to auto close tabs? Then look no further!",
+  "description": "Tired of unwanted popups? Leftover Zoom tabs got you down? Want a simple extension to auto close tabs? Then look no further!",
   "icons": {
     "128": "icon128.png"
   },
