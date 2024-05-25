@@ -117,7 +117,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "center-text",
-            width: 150
+            width: 1
         },
         {
             name: "Settings",
@@ -584,7 +584,7 @@ ${error.message}`;
                 let index = 1;
                 for (let i = lastHits.length - 1; i >= 0; i--) {
                     //Trim the url so it fits in the alert box
-                    const maxUrlLength = 50;
+                    const maxUrlLength = 48;
                     let lastHitTrimmed = lastHits[i].length > maxUrlLength ?
                         lastHits[i].substring(0, maxUrlLength - 3) + "..."
                         : lastHits[i];
