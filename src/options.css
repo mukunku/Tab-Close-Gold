@@ -32,6 +32,9 @@
 		color: var(--text-color);
 		background: var(--accent-color) !important;
 	}
+	.slick-cell.editable{
+		background: var(--accent-color) !important;
+	}
 }
 
 html {
@@ -276,10 +279,6 @@ div:not(.new-row)>.r3.slick-cell:empty {
 
 .slick-row {
 	background: var(--background-color) !important;
-}
-
-.slick-cell.editable{
-	background: var(--accent-color) !important;
 }
 
 .debug-log {
