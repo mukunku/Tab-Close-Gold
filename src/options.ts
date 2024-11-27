@@ -119,7 +119,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "center-text",
-            width: 140
+            width: 150
         },
         {
             name: "Settings",
