@@ -200,21 +200,16 @@ export class LogRecord {
     }
 
     public renderHtml() {
-        const errorColor: string = "#F63E02";
-        const warningColor: string = "#FAA300";
-        const debugColor: string = "#35342F";
-        const traceColor: string = "#5E5C53";
-
         let boldify = (input: string) => `<b>${input}</b>`;
 
         if (this.type === LogLevel.Debug) {
-            return `<p style="color: ${debugColor};">${LogRecord.timestampMessage(`[DEBUG] ${this.message}`, new Date(this.date), boldify)}</p>`;
+            return `<p class="debug-log">${LogRecord.timestampMessage(`[DEBUG] ${this.message}`, new Date(this.date), boldify)}</p>`;
         } else if (this.type === LogLevel.Warning) {
-            return `<p style="color: ${warningColor};">${LogRecord.timestampMessage(`[WARN ] ${this.message}`, new Date(this.date), boldify)}</p>`;
+            return `<p class="warning-log">${LogRecord.timestampMessage(`[WARN ] ${this.message}`, new Date(this.date), boldify)}</p>`;
         } else if (this.type === LogLevel.Error) {
-            return `<p style="color: ${errorColor};">${LogRecord.timestampMessage(`[ERROR] ${this.message}`, new Date(this.date), boldify)}</p>`;
+            return `<p class="error-log">${LogRecord.timestampMessage(`[ERROR] ${this.message}`, new Date(this.date), boldify)}</p>`;
         } else {
-            return `<p style="color: ${traceColor};">${LogRecord.timestampMessage(`[TRACE] ${this.message}`, new Date(this.date), boldify)}</p>`;
+            return `<p class="trace-log">${LogRecord.timestampMessage(`[TRACE] ${this.message}`, new Date(this.date), boldify)}</p>`;
         }
     }
 

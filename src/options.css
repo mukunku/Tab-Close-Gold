@@ -1,10 +1,42 @@
+/* Default (Light) mode */
 :root {
-	--main-font-size: 12px;
+	color-scheme: light dark;
+	--background-image: url("./images/noise.png");
+	--text-color: black;
+	--accent-color: silver;
+	--background-color: white;
+	--hover-icons-filter: invert(0%);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background-image: url("./images/noise-dark.png");
+		--text-color: #E6D5B8; /*bling bling*/
+		--accent-color: #1B1A17;
+		--background-color: #0F0F0F;
+		--hover-icons-filter: invert(100%);
+	}
+	.slick-header-column  {
+		background: var(--accent-color) !important;
+	}
+	button {
+		background-color: var(--text-color);
+		color: var(--background-color);
+	}
+	.context-menu {
+		color: var(--background-color);
+		background-color: var(--text-color) !important;
+	}
+	input, textarea {
+		color: var(--text-color);
+		background: var(--accent-color) !important;
+	}
 }
 
 html {
 	font-family: Arial, sans-serif !important;
-	background-image: url("./images/noise.png");
+	background-image: var(--background-image);
 	background-repeat: repeat;
 	font-size: initial;
 }
@@ -17,15 +49,15 @@ body,
 input,
 button,
 textarea {
-	font-size: var(--main-font-size);
+	font-size: 12px;
 	font-family: Arial, sans-serif !important;
 }
 
 #main {
 	width: 900px;
-	border: 3px solid silver;
-	background: white;
-
+	border: 3px solid var(--accent-color);
+	background-color: var(--background-color);
+	color: var(--text-color);
 }
 
 #header {
@@ -35,6 +67,7 @@ textarea {
 #main-grid {
 	width: 100%;
 	height: 70%;
+	background: var(--background-color) !important;
 }
 
 #footer {
@@ -133,10 +166,11 @@ div:not(.new-row)>.r3.slick-cell:empty {
 
 .md-dialog .md-dialog-window {
 	border: 1px solid #888;
-	background-color: #fefefe;
+	background-color: var(--background-color);
 	width: 80%;
 	margin: 10% auto;
 	min-width: 400px;
+	color: var(--text-color);
 }
 
 .md-dialog .md-dialog-header {
@@ -147,7 +181,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	font-size: 1.33em;
 	line-height: 1.667em;
 	padding: 0.125em 0.25em;
-	background-color: #DDD;
+	background-color: var(--accent-color);
 	white-space: nowrap;
 }
 
@@ -188,12 +222,12 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	left: 0;
 	height: 5px;
 	width: 5px;
-	background-color: #fff;
-	border: 1px solid #000;
+	border: 1px solid var(--accent-color);
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 	overflow: auto;
 	z-index: 1000;
 	padding: 0px 8px;
+	background-color: var(--background-color);
 }
 
 .context-menu .option {
@@ -212,6 +246,10 @@ div:not(.new-row)>.r3.slick-cell:empty {
 
 .context-menu .checkbox-label {
 	margin-top: 2px;
+}
+
+.option-icon {
+	filter: var(--hover-icons-filter);
 }
 
 .slick-cell .option-icon {
@@ -234,4 +272,28 @@ div:not(.new-row)>.r3.slick-cell:empty {
 	filter: contrast(100%) brightness(100%) grayscale(0%) saturate(100%) hue-rotate(200deg) sepia(0%)  invert(0%) blur(0px);
 	vertical-align: middle;
 	margin-top: -2px;
+}
+
+.slick-row {
+	background: var(--background-color) !important;
+}
+
+.slick-cell.editable{
+	background: var(--accent-color) !important;
+}
+
+.debug-log {
+	color: var(--text-color);
+}
+
+.warning-log {
+	color: #FAA300;
+}
+
+.trace-log {
+	color: #5E5C53;
+}
+
+.error-log {
+	color: #F63E02;
 }
