@@ -4,18 +4,20 @@ import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import 'slickgrid';
 
-//Following dependencies are needed for Slickgrid to work (webpack will bundle all them into 'options.bundle.js')
+//Following dependencies are needed for Slickgrid to work (webpack will bundle all of them into 'options.bundle.js')
 import './node_modules/slickgrid/lib/jquery-ui.min'; //this will cause an auto import of the latest jquery somehow..
 import './node_modules/slickgrid/lib/jquery.event.drag-2.3.0';
 import './node_modules/slickgrid/lib/jquery.event.drop-2.3.0';
 import './node_modules/slickgrid/slick.formatters';
 import './node_modules/slickgrid/slick.editors';
 import './node_modules/slickgrid/slick.grid';
+
 import { LogLevel, LogRecord, Logger } from "./helpers/logger";
 import { ModalWindow } from "./helpers/modal-window";
 import { Environment } from "./helpers/env";
 import { SessionStorageApi } from "./storage/storage-api.session";
 import { CheckboxOption, ContextMenu, DropdownOption, LinkButton } from "./helpers/context-menu";
+import * as browser from "webextension-polyfill";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -117,7 +119,7 @@ export class OptionsJS {
             cannotTriggerInsert: true,
             focusable: false,
             cssClass: "center-text",
-            width: 1
+            width: 140
         },
         {
             name: "Settings",
@@ -162,7 +164,7 @@ export class OptionsJS {
         //Update storage usage
         await this.updateStorageUsageProgressBar(storageType);
 
-        //Populate the slickgrid
+        //Fetch data to populate the slickgrid
         let urlPatterns: UrlPattern[] = await (await StorageApiFactory.getStorageApi()).getSettings();
 
         //sort by Last Hit On desc
@@ -424,10 +426,13 @@ ${error.message}`;
                         menu?.remove();
                     });
 
-                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton], () => {
-                    //on close event
-                });
-                menu.render(this.$systemSettingsButton, 290, 120, "up");
+                const wikiLink = new LinkButton("User Guide", async () => {
+                    await browser.tabs.create({url: "https://github.com/mukunku/Tab-Close-Gold/wiki"})
+                }, undefined, "external-link.png");
+
+                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink], 
+                    () => { /*on close event*/ });
+                menu.render(this.$systemSettingsButton, 290, 140, "up");
 
                 event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
             } catch (error: any) {
@@ -443,7 +448,19 @@ ${error.message}`;
             Slick.GlobalEditorLock.commitCurrentEdit();
         });
 
-        //Hide context menu's on resize because they look weird otherwise
+        //do the same for textboxes
+        $('#main-grid').on('blur', 'input.editor-text', function (test) {
+            //HACK: This requires pretty accurate timing. Not sure if this is a good idea but it greatly improves the user experience imo.
+            setTimeout(() => {
+                // @ts-ignore: IsActive() works without parameters but it's not in the type file.
+                if (Slick.GlobalEditorLock.isActive()) {
+                    Slick.GlobalEditorLock.commitCurrentEdit();
+                    console.log("committed");
+                }
+            });
+        });
+
+        //hide context menu's on resize because they look weird otherwise
         $(window).on("resize", function() {
             ContextMenu.removeAll();
         });
@@ -451,6 +468,10 @@ ${error.message}`;
 
     private async saveSettings(): Promise<void> {
         try {
+            if (!this.validateAllSettings()) {
+                console.warn("Cannot save settings due to failing validations.")
+                return;
+            }
             let storageApi = await StorageApiFactory.getStorageApi();
             let rawOptions = <UrlPattern[]>this.slickgrid?.getData();
             await storageApi.saveSettings(rawOptions, true);
@@ -461,6 +482,34 @@ ${error.message}`;
             console.error(errorMessage);
             alert(errorMessage);
         }
+    }
+
+    private validateAllSettings(): Boolean {
+        let isValid = true;
+        let gridData: UrlPattern[] = this.slickgrid?.getData();
+        
+        for (let rowIndex = 0; rowIndex < gridData.length; rowIndex++) {
+            let urlPattern = gridData[rowIndex];
+            if ((urlPattern.pattern || '').trim() === '') {
+                isValid = false;
+                this.flashPatternCell(rowIndex);
+            } else if (urlPattern.isRegex) {
+                try {
+                    new RegExp(urlPattern.pattern);
+                } catch (error) {
+                    isValid = false;
+                    this.flashPatternCell(rowIndex);
+                }
+            }
+        }
+
+        return isValid;
+    }
+
+    private flashPatternCell(rowIndex: number) : void {
+        this.slickgrid?.flashCell(rowIndex,
+            this.slickgrid.getColumns().findIndex(c => c.id === "pattern"),
+            200);
     }
 
     private async updateStorageUsageProgressBar(storageType?: ChromeStorageType): Promise<void> {
@@ -549,17 +598,13 @@ ${error.message}`;
                 try {
                     new RegExp(args.item.pattern);
                 } catch (error) {
-                    alert("Your pattern is not a valid regex!");
-                    args.grid.flashCell(args.row,
-                        args.grid.getColumns().findIndex(c => c.id === "pattern"),
-                        200);
+                    alert("Your pattern is not a valid regular expression.");
+                    this.flashPatternCell(args.row);
                     return;
                 }
             } else if (!args.item.pattern) {
                 alert("You cannot leave the Search Pattern empty.");
-                args.grid.flashCell(args.row,
-                    args.grid.getColumns().findIndex(c => c.id === "pattern"),
-                    200);
+                this.flashPatternCell(args.row);
                 return;
             }
             await this.saveSettings();
@@ -664,7 +709,7 @@ ${error.message}`;
                 OptionsJS.contextMenuOpenForRow = -1;
             });
 
-        menu.render($clickedCell, 160, 150);
+        menu.render($clickedCell, 165, 150);
 
         //also show setting icons for the row
         $clickedCell.siblings('.search-pattern-cell').children('.option-icon').addClass('d-block');

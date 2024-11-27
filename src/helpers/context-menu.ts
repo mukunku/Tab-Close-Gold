@@ -80,17 +80,22 @@ export class LinkButton implements IOption {
     label: string;
     id: string;
     css: string;
+    image: string;
     onChanged: OnChangeHandler;
 
-    constructor(label: string, onChanged: OnChangeHandler, css?: string) {
+    constructor(label: string, onChanged: OnChangeHandler, css?: string, image?: string) {
         this.label = label;
         this.id = label.replace(/[^a-zA-Z0-9]/g, '');
         this.onChanged = onChanged;
         this.css = css || "";
+        this.image = image || "";
     }
 
     renderHtml(): JQuery {
-        const $html = $(`<span id="${this.id}" class="linkbutton pointer underline" style="${this.css}">${this.label}</span>`);
+        let $html = $(`<span id="${this.id}" class="linkbutton pointer underline" style="${this.css}">${this.label}</span>`);
+        if (this.image) {
+            $html = $html.prepend($(`<img src="./images/${this.image}" style="padding-right:4px;vertical-align:middle;margin-top:-2px;">`));
+        }
 
         if (this.onChanged) {
             $html.on('click', async (_) => {
