@@ -450,12 +450,11 @@ ${error.message}`;
 
         //do the same for textboxes
         $('#main-grid').on('blur', 'input.editor-text', function (test) {
-            //HACK: This requires pretty accurate timing. Not sure if this is a good idea but it greatly improves the user experience imo.
+            //HACK: Not sure if this is a good idea but it greatly improves the user experience imo.
             setTimeout(() => {
                 // @ts-ignore: IsActive() works without parameters but it's not in the type file.
                 if (Slick.GlobalEditorLock.isActive()) {
                     Slick.GlobalEditorLock.commitCurrentEdit();
-                    console.log("committed");
                 }
             });
         });
