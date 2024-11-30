@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Close Gold",
-  "version": "3.1.0.0",
+  "version": "3.1.0.1",
   "permissions": [
     "tabs",
     "storage"

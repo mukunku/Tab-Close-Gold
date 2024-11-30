@@ -430,8 +430,7 @@ ${error.message}`;
                     await browser.tabs.create({url: "https://github.com/mukunku/Tab-Close-Gold/wiki"})
                 }, undefined, "external-link.png");
 
-                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink], 
-                    () => { /*on close event*/ });
+                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink]);
                 menu.render(this.$systemSettingsButton, 290, 140, "up");
 
                 event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
@@ -616,6 +615,11 @@ ${error.message}`;
             this.slickgrid!.render();
             await this.saveSettings();
         };
+        if (OptionsJS.contextMenuOpenForRow === row) {
+            //Allow context menu to close since user clicked the same cell
+            return;
+        }
+
         const gridRow = grid.getData()[row];
         let menu: ContextMenu | null = null;
 
@@ -700,7 +704,7 @@ ${error.message}`;
         //color the clicked cell to make it more obvious
         $clickedCell.css("background-color", "cornsilk");
 
-        menu = new ContextMenu([lastHitsButton, isRegexCheckbox, matchByDropdown, resetHitsButton, deleteRowButton],
+        menu = new ContextMenu([lastHitsButton, isRegexCheckbox, matchByDropdown, resetHitsButton, deleteRowButton], 
             () => {
                 //$clickedCell won't exist if the grid gets re-rendered due to a setting change
                 $clickedCell.css("background-color", "");
