@@ -204,8 +204,7 @@ async function closeTheTab(tabId: number): Promise<boolean> {
 		}
 
 		if (tabs.filter(tab => tab.id === tabId).length > 0) {
-			//close the tab
-			(await Logger.getInstance()).logTrace(`Closing tab id: ${tabId}`);
+			Logger.logTrace(`Closing tab id: ${tabId}`);
 			await browser.tabs.remove(tabId);
 			return true;
 		} else {
