@@ -36,7 +36,7 @@ export class Logger {
         }
 
         //Clear out any old logs (we could persist logs for a long time but i feel like this is more tidy)
-        this.storage.SetByKey(Logger.SESSION_LOGS_KEY, new CircularLogBuffer<LogRecord>(Logger.KEEP_LAST_N_LOGS)).then(() => {
+        this.setLogBuffer(new CircularLogBuffer<LogRecord>(Logger.KEEP_LAST_N_LOGS)).then(() => {
             //Flush logs to storage regularly 
             this.intervalId = setInterval(() => this.flush(), Logger.FLUSH_INTERVAL_MS);
         });
@@ -160,7 +160,7 @@ export class Logger {
                     }
                 }
 
-                await this.storage.SetByKey(Logger.SESSION_LOGS_KEY, logs);
+                await this.setLogBuffer(logs);
                 this.syncFailureCount = 0;
             } catch (error: any) {
                 this.syncFailureCount++;
@@ -185,6 +185,10 @@ export class Logger {
         }
 
         return CircularLogBuffer.instantiate(logs);
+    }
+
+    private async setLogBuffer(logBuffer: CircularLogBuffer<LogRecord> ) {
+        await this.storage.SetByKey(Logger.SESSION_LOGS_KEY, logBuffer);
     }
 }
 
