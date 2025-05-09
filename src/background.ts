@@ -2,7 +2,6 @@ import { Mutex } from "async-mutex";
 import { Logger } from "./helpers/logger";
 import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
-import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
 
@@ -19,7 +18,7 @@ browser.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) =
 	setTimeout(async () => {
 		let tab = await browser.tabs.get(addedTabId);
 		await inspectUrl(tab, { url: tab.url, title: tab.title } as browser.Tabs.OnUpdatedChangeInfoType);
-	}, 5);
+	}, 10);
 });
 
 const regexpCache = new Map<string, RegExp>();
@@ -206,7 +205,7 @@ async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<bo
 		Logger.logTrace(`Closing tab ${tabId}`);
 		await browser.tabs.remove(tabId);
 
-		//confirm we actually had a tab with that id to begin with (i.e. wasn't closed already)
+		//confirm we actually had a tab with that id to begin with (i.e. wasn't closed already). Not sure if this is needed or not.
 		if ((await tabsPromise).filter(tab => tab.id === tabId).length > 0) {
 			Logger.logTrace(`Tab ${tabId} closed successfully`);
 			return true;
