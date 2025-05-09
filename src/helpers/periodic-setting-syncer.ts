@@ -1,3 +1,4 @@
+import { StorageApi } from "../storage/storage-api";
 import { StorageApiFactory } from "../storage/storage-api-factory";
 import { UrlPattern } from "../storage/url-pattern";
 import { Logger } from "./logger";
@@ -14,6 +15,7 @@ export class PeriodicSettingSyncer {
     public hasNewHits: boolean = false;
 
     public configs: UrlPattern[];
+    public dontCloseLastTab: boolean = true;
 
     private constructor(logger: Logger | undefined | null) {
         this.configs = [];
@@ -23,7 +25,11 @@ export class PeriodicSettingSyncer {
 
     private async initialize(): Promise<void> {
         let storageApi = await StorageApiFactory.getStorageApi();
-        this.configs = await storageApi.getSettings();
+        const configsPromise = storageApi.getSettings();
+        const dontCloseLastTabPromise = storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY);
+        let results = await Promise.all([configsPromise, dontCloseLastTabPromise]);
+        this.configs = results[0];
+        this.dontCloseLastTab = results[1] !== false; //make sure it's boolean type
         this.intervalId = setInterval(async () => { await this.sync(); }, PeriodicSettingSyncer.SYNC_FREQUENCY_MS);
     }
 
@@ -33,8 +39,9 @@ export class PeriodicSettingSyncer {
             try {
                 if (!PeriodicSettingSyncer.instance) {
                     const syncer = new PeriodicSettingSyncer(logger);
-                    logger?.logTrace("PeriodicSettingSyncer: Creating new instance.");
+                    const startTimeMS = performance.now();
                     await syncer.initialize();
+                    logger?.logTrace(`PeriodicSettingSyncer: Created new instance in ${performance.now() - startTimeMS}ms.`);
                     PeriodicSettingSyncer.instance = syncer;
                 }
             } finally {

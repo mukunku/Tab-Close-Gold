@@ -6,6 +6,11 @@ import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
 
+//hydrate the cache to speed up tab inspections
+Logger.getInstance().then((logger) => {
+	PeriodicSettingSyncer.getInstance(logger)
+});
+
 browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType, tab: browser.Tabs.Tab) => {
 	await inspectUrl(tab, changeInfo);
 });
@@ -13,8 +18,8 @@ browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tab
 browser.tabs.onReplaced.addListener((addedTabId: number, removedTabId: number) => {
 	setTimeout(async () => {
 		let tab = await browser.tabs.get(addedTabId);
-		await inspectUrl(tab, { url: tab.url, title: tab.title } as browser.Tabs.OnUpdatedChangeInfoType)
-	}, 10);
+		await inspectUrl(tab, { url: tab.url, title: tab.title } as browser.Tabs.OnUpdatedChangeInfoType);
+	}, 5);
 });
 
 const regexpCache = new Map<string, RegExp>();
@@ -132,7 +137,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				setTimeout(async () => {
 					let wasClosed = false;
 					try {
-						wasClosed = await closeTheTab(tabId!);
+						wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
 						if (wasClosed) {
 							saveHit();
 						}
@@ -147,13 +152,13 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			} else { // close the tab immediately
 				let wasClosed = false;
 				try {
-					wasClosed = await closeTheTab(tabId!);
+					wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
 					if (wasClosed) {
 						saveHit();
 					}
 				} finally {
 					if (wasClosed) {
-						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Closing tab.`);
+						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Tab has been closed.`);
 					} else {
 						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
 					}
@@ -184,31 +189,30 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 	}
 }
 
-async function closeTheTab(tabId: number): Promise<boolean> {
+async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<boolean> {
 	//We need exclusive access to tabs so hit statistics are accurate. This is because
 	//we now allow matching by title and url so if both match that counts as two hits without locking.
 	const release = await (await acquireTabLock(tabId)).acquire();
 	try {
 		//check if this is the only tab
-		let tabs = await browser.tabs.query({ windowType: 'normal' });
+		const tabsPromise = browser.tabs.query({ windowType: 'normal' });
 
-		if (tabs.length === 1) {
-			//TODO: This is ugly, find a better way than checking settings on the fly
-			const storageApi = await StorageApiFactory.getStorageApi();
-			const dontCloseLastTab = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
-
-			if (dontCloseLastTab || dontCloseLastTab === undefined || dontCloseLastTab === null) {
-				//lets open a blank tab before closing the last one
-				await browser.tabs.create({ url: "about:blank" });
-			}
+		if (dontCloseLastTab && (await tabsPromise).length === 1) {
+			//lets open a blank tab before closing the last one
+			await browser.tabs.create({ url: "about:blank" });
 		}
 
-		if (tabs.filter(tab => tab.id === tabId).length > 0) {
-			Logger.logTrace(`Closing tab id: ${tabId}`);
-			await browser.tabs.remove(tabId);
+		//close first, ask questions later
+		Logger.logTrace(`Closing tab ${tabId}`);
+		await browser.tabs.remove(tabId);
+
+		//confirm we actually had a tab with that id to begin with (i.e. wasn't closed already)
+		if ((await tabsPromise).filter(tab => tab.id === tabId).length > 0) {
+			Logger.logTrace(`Tab ${tabId} closed successfully`);
 			return true;
 		} else {
 			//tab doesn't exist anymore. probably already closed by another rule
+			Logger.logTrace(`Tab ${tabId} not found`);
 			return false;
 		}
 	} finally {
@@ -248,6 +252,10 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 				//User changed something on the options page. Tell the syncer to refresh configs.
 				let periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
 				periodicSettingSyncer.hasNewConfigs = true;
+			} else if (key === StorageApi.DONT_CLOSE_LAST_TAB_KEY) {
+				const logger = await Logger.getInstance();
+				let periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
+				periodicSettingSyncer.dontCloseLastTab = newValue;
 			}
 
 			if (key?.startsWith("config-")) {
