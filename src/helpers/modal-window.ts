@@ -12,7 +12,6 @@ export class ModalWindow {
 
     private static _defaultOptions: any =
         {
-            selector: '.md-dialog',
             show: false
         };
 

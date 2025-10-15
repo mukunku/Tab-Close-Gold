@@ -619,6 +619,11 @@ ${error.message}`;
             }
             await this.saveSettings();
         });
+
+        //Hide context menus on scroll so it doesn't look weird
+        this.slickgrid.onScroll.subscribe((e, args) => {
+            ContextMenu.removeAll();
+        });
     }
 
     private showContextMenu(grid: Slick.Grid<UrlPattern>, row: number, cell: number, event: Slick.EventData): void {
