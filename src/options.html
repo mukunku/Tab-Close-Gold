@@ -24,14 +24,14 @@
 			<div class="float-left">
 				<div class="flex-container" style="display: none;" id="super-secret-admin-panel">
 					<!-- We use local storage for logs so we can't allow people to switch between local and cloud storage for now -->
-					<span class="flex-item" style="padding-top: 5px; padding-right: 5px;">Options Storage: </span>
+					<span class="flex-item" style="padding-right: 5px;">Options Storage: </span>
 					<select id="storage-dropdown" class="flex-item" name="storage_option">
 						<option value="Cloud">Cloud</option>
 						<option value="Local">Local</option>
 					</select>
 					<span class="flex-item" id="storage-switch-message"></span>
 				</div>
-				<div class="flex-container" style="margin-top: 5px;">
+				<div class="flex-container">
 					<span>Storage usage: </span>
 					<progress id="storage-usage-progress-bar" value="0" max="100" class="flex-item"
 						style="margin-left: 5px;"></progress>

@@ -3,11 +3,11 @@ Firefox & Chrome extension to auto close tabs. Formerly known as "Ad Close Gold"
 
 ![options page](./images/main-screenshot.png) 
 
-Close tabs by configuring search patterns that match website url's or titles. Search patterns can be strings with wildcards or regular expressions. 
+Close tabs by configuring search patterns that match website url's or titles. Search patterns can be keywords with wildcards or regular expressions. 
 
 Keeps track of tabs it closes and supports exporting and importing configurations.
 
-The extension will sync your configs across browsers if you are using the synchronization functionality of your browser.
+The extension will sync configs across your browsers if you are using the synchronization functionality of your browser.
 
 ## Download 
 

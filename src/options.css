@@ -75,11 +75,13 @@ textarea {
 
 #footer {
 	width: 100%;
-	min-height: 30px;
+	min-height: 20px;
+	margin-top: 10px;
 }
 
 #configFooter {
 	min-height: 105px;
+	margin-top: 10px;
 }
 
 #title {
