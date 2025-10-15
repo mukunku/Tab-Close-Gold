@@ -12,7 +12,7 @@ export class SessionStorageApi extends StorageApi {
         super(browser.storage.session);
     }
 
-    public async saveSettingsImpl(values: UrlPattern[]): Promise<any> {
+    protected preparePatternsForStorage(values: UrlPattern[]): any {
         //No 'per-item' storage limitations in session storage so we can just dump it all into one item
         var optionsRaw = { 'config-1': LZString.compressToUTF16(JSON.stringify(values)) };
         return optionsRaw;

@@ -272,7 +272,7 @@ div:not(.new-row)>.r3.slick-cell:empty {
 }
 
 #system-settings-button > img {
-	filter: contrast(100%) brightness(100%) grayscale(0%) saturate(100%) hue-rotate(200deg) sepia(0%)  invert(0%) blur(0px);
+	filter: contrast(100%) brightness(100%) grayscale(0%) saturate(100%) hue-rotate(200deg) sepia(0%) invert(0%) blur(0px);
 	vertical-align: middle;
 	margin-top: -2px;
 }

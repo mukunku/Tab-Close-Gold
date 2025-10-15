@@ -356,7 +356,6 @@ ${error.message}`;
                         if (!modal) {
                             modal = new ModalWindow('logs-modal', {
                                 show: true,
-                                mode: null, // Disable modal mode, allow click outside to close
                                 headerContent: $headerContent,
                                 htmlContent: $bodyContent
                             }); //just creating the object will display the modal
@@ -430,7 +429,20 @@ ${error.message}`;
                     await browser.tabs.create({url: "https://github.com/mukunku/Tab-Close-Gold/wiki"})
                 }, undefined, "external-link.png");
 
-                menu = new ContextMenu([closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink]);
+                const contextMenuItems = [closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink];
+                if (Environment.isDev()) { 
+                    const debugStorageDataButton = new LinkButton("Debug storage data", async () => {
+                        new ModalWindow('storage-data-modal', {
+                                show: true,
+                                headerContent: "<div>Storage data</div>",
+                                htmlContent: `<pre>${await storageApi.GetAllJSON()}</pre>`
+                            }); //just creating the object will display the modal
+                        menu?.remove();
+                    });
+                    contextMenuItems.push(debugStorageDataButton);
+                }
+
+                menu = new ContextMenu(contextMenuItems);
                 menu.render(this.$systemSettingsButton, 290, 140, "up");
 
                 event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu

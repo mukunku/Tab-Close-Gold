@@ -15,7 +15,7 @@ export class CloudStorageApi extends StorageApi {
 		super(browser.storage.sync);
 	}
 
-    public async saveSettingsImpl(values: UrlPattern[]): Promise<any> {
+    protected preparePatternsForStorage(values: UrlPattern[]): any {
         //Cloud storage has strict limits on storage per config item. so we must partition our data.
         let optionsRaw = this.generatePartitionedOptionsForCloudStorage(values);
         return optionsRaw;

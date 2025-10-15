@@ -7,6 +7,7 @@ import * as browser from "webextension-polyfill";
 export abstract class StorageApi {
     public static readonly LAST_SAVE_DATE_KEY: string = "last-save-date";
     public static readonly DONT_CLOSE_LAST_TAB_KEY: string = "dont-close-last-tab";
+
     private static readonly STORAGE_TYPE_CLOUD = {
         'useCloudStorage': true
     };
@@ -23,7 +24,7 @@ export abstract class StorageApi {
         this.browserStorageArea = browserStorageArea;
     }
 
-    public abstract saveSettingsImpl(values: UrlPattern[], additionalSettings?: Map<string, string>): Promise<any>; //no private abstract in typescript
+    protected abstract preparePatternsForStorage(values: UrlPattern[]): any; 
     public abstract getStorageUsage(): Promise<StorageUsage>;
 
     public abstract SetByKey(key: string, value: any): Promise<void>;
@@ -35,7 +36,7 @@ export abstract class StorageApi {
     }
 
     public async saveSettings(values: UrlPattern[], updateSaveDate: boolean): Promise<void> {
-        let optionsRaw = (await this.saveSettingsImpl(values)) as any;
+        let optionsRaw = this.preparePatternsForStorage(values);
         if (updateSaveDate) {
             optionsRaw[StorageApi.LAST_SAVE_DATE_KEY] = new Date().toISOString(); //UTC timezone
         }
@@ -88,8 +89,8 @@ export abstract class StorageApi {
         return this.browserStorageArea.clear();
     }
 
-    protected parseSettings(optionsRaw: any): UrlPattern[] {
-        //check if the data is partitioned (for cloud storage)
+    private parseSettings(optionsRaw: any): UrlPattern[] {
+         //check if the data is partitioned (for cloud storage)
         var isPartitionedData = !!(optionsRaw['config-2']);
 
         let settings: UrlPattern[] = [];
@@ -139,7 +140,22 @@ export abstract class StorageApi {
     }
 
     public async migrateSettings(newStorageApi: StorageApi): Promise<void> {
-        let allOptions = await this.browserStorageArea.get(null);
+        const allOptions = await this.browserStorageArea.get(null);
         await newStorageApi.browserStorageArea.set(allOptions);
+    }
+
+    public async GetAllJSON(): Promise<string> {
+        const rawConfigs = await this.browserStorageArea.get(null);
+
+        //Loop through all items and decompress configs
+        for (var properyName in rawConfigs) {
+            if (Object.prototype.hasOwnProperty.call(rawConfigs, properyName)) {
+                if (properyName.startsWith("config-")) {
+                    rawConfigs[properyName] = LZString.decompressFromUTF16(rawConfigs[properyName]);
+                }
+            }
+        }
+
+        return JSON.stringify(rawConfigs, null, 2);
     }
 }

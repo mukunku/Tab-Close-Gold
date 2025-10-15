@@ -3,9 +3,7 @@ import { UrlPattern } from "./url-pattern";
 import * as LZString from 'lz-string';
 import { StorageUsage } from "./storage-usage";
 import * as browser from "webextension-polyfill";
-import { Logger } from "../helpers/logger";
 import { ChromeStorageType } from "./chrome-storage-types";
-import { Environment } from "../helpers/env";
 
 export class LocalStorageApi extends StorageApi {
     public storageType = ChromeStorageType.Local;
@@ -14,7 +12,7 @@ export class LocalStorageApi extends StorageApi {
         super(browser.storage.local);
     }
 
-    public async saveSettingsImpl(values: UrlPattern[]): Promise<any> {
+    protected preparePatternsForStorage(values: UrlPattern[]): any {
         //No 'per-item' storage limitations in local storage so we can just dump it all into one item
         var optionsRaw = {'config-1': LZString.compressToUTF16(JSON.stringify(values))};
         return optionsRaw;

@@ -114,12 +114,13 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			}
 
 			const saveHit = () => {
+				const MAX_LAST_HIT_LENGTH = 197; //We limit the lengths to avoid storing overly long strings (E.g. 2k+ characters)
 				config.hitCount++;
 				config.lastHitOn = new Date();
 
 				//We keep a rolling window of hits
 				config.lastHits = config.lastHits || [];
-				config.lastHits.push(matchedPattern);
+				config.lastHits.push(matchedPattern.length > MAX_LAST_HIT_LENGTH ? `${matchedPattern.substring(0, MAX_LAST_HIT_LENGTH)}...` : matchedPattern);
 				while (config.lastHits.length > UrlPattern.LAST_HIT_HISTORY_COUNT) {
 					config.lastHits.shift();
 				}
