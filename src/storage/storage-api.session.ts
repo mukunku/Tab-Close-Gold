@@ -58,4 +58,8 @@ export class SessionStorageApi extends StorageApi {
         let value: Record<string, any> = await browser.storage.session.get(key);
         return value[key];
     }
+
+    public RemoveKey(key: string): Promise<void> {
+        return browser.storage.session.remove(key);
+    }
 }

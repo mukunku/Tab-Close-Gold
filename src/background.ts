@@ -4,11 +4,18 @@ import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
+import { setIconEnabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
+import { LocalStorageApi } from "./storage/storage-api.local";
 
 //hydrate the cache to speed up tab inspections
 Logger.getInstance().then((logger) => {
 	PeriodicSettingSyncer.getInstance(logger)
 });
+
+//need to periodically check to see if we need to pause or re-enable the extension
+const PAUSE_CHECK_INTERVAL_MS = 500;
+let isExtensionPaused = false; 
+let pauseIntervalId = setInterval(checkExtensionPause, PAUSE_CHECK_INTERVAL_MS);
 
 browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType, tab: browser.Tabs.Tab) => {
 	await inspectUrl(tab, changeInfo);
@@ -62,6 +69,11 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 		}
 
 		const logger = await Logger.getInstance();
+		if (isExtensionPaused) {
+			logger.logTrace(`Skipping checks for '${tabUrl}' and '${tabTitle}' because the extension is paused.`);
+			return;
+		}
+
 		const periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
 		let configs = periodicSettingSyncer.configs;
 		for (var i = 0; i < configs.length; i++) {
@@ -114,13 +126,12 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			}
 
 			const saveHit = () => {
-				const MAX_LAST_HIT_LENGTH = 197; //We limit the lengths to avoid storing overly long strings (E.g. 2k+ characters)
 				config.hitCount++;
 				config.lastHitOn = new Date();
 
 				//We keep a rolling window of hits
 				config.lastHits = config.lastHits || [];
-				config.lastHits.push(matchedPattern.length > MAX_LAST_HIT_LENGTH ? `${matchedPattern.substring(0, MAX_LAST_HIT_LENGTH)}...` : matchedPattern);
+				config.lastHits.push(matchedPattern.length > UrlPattern.MAX_LAST_HIT_LENGTH ? `${matchedPattern.substring(0, UrlPattern.MAX_LAST_HIT_LENGTH)}...` : matchedPattern);
 				while (config.lastHits.length > UrlPattern.LAST_HIT_HISTORY_COUNT) {
 					config.lastHits.shift();
 				}
@@ -276,3 +287,19 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 		Logger.logError(`Error in browser.storage.onChanged.addListener: ${error.message}`);
 	}
 });
+
+async function checkExtensionPause() {
+	clearInterval(pauseIntervalId);
+	const localStorageApi = new LocalStorageApi();
+	const pausedUntil = await localStorageApi.GetByKey(EXTENSION_PAUSED_UNTIL_KEY);
+	if (pausedUntil && !isNaN(pausedUntil)) {
+		isExtensionPaused = pausedUntil - Date.now() > 0;
+		if (!isExtensionPaused) {
+			setIconEnabled();
+			await localStorageApi.RemoveKey(EXTENSION_PAUSED_UNTIL_KEY);
+		}
+	} else {
+		isExtensionPaused = false;
+	}
+	pauseIntervalId = setInterval(async () => { await checkExtensionPause(); }, PAUSE_CHECK_INTERVAL_MS);
+}

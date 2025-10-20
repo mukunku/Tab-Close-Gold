@@ -29,6 +29,7 @@ export abstract class StorageApi {
 
     public abstract SetByKey(key: string, value: any): Promise<void>;
     public abstract GetByKey(key: string): Promise<any>;
+    public abstract RemoveKey(key: string): Promise<void>;
 
     public async getSettings(): Promise<UrlPattern[]> {
         let optionsRaw = await this.browserStorageArea.get(null);

@@ -182,7 +182,7 @@ export class OptionsJS {
         //Tell slick grid the data is sorted (doesn't actually trigger sort)
         this.slickgrid?.setSortColumns([
             { columnId: 'lastHitOn', sortAsc: false }
-        ]); //show last hit first
+        ]);
 
         this.attachEvents();
     }
@@ -404,7 +404,7 @@ ${error.message}`;
                             const storageApi = await StorageApiFactory.getStorageApi();
                             storageApi.clearAllSettings();
 
-                            //TODO: Logger is not thread-safe. So we can only have one writer in the entire application
+                            //TODO: Logger is not thread-safe. So we can only have one writer in the entire application: background.ts
                             alert("All settings cleared");
                             location.reload();
                         } else {
@@ -485,8 +485,7 @@ ${error.message}`;
             let storageApi = await StorageApiFactory.getStorageApi();
             let rawOptions = <UrlPattern[]>this.slickgrid?.getData();
             await storageApi.saveSettings(rawOptions, true);
-        }
-        catch (error: any) {
+        } catch (error: any) {
             const errorMessage = `Could not save configurations.
 ${error.message}`;
             console.error(errorMessage);

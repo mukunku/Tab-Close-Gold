@@ -7,6 +7,8 @@ export enum MatchBy {
 export class UrlPattern {
     public static readonly LAST_HIT_HISTORY_COUNT: number = 5;
     public static readonly MAX_DELAY_IN_MILLISECONDS = 30000;
+    public static readonly MAX_LAST_HIT_LENGTH = 197; //We limit the lengths to avoid storing overly long strings (E.g. 2k+ characters)
+
 
     public enabled: boolean;
     public pattern: string;

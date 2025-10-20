@@ -2,11 +2,25 @@ import { Environment } from "./helpers/env";
 import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
+import { LocalStorageApi } from "./storage/storage-api.local";
+import { setIconEnabled, setIconDisabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
 
 export class PopupJS {
+    private static readonly DEFAULT_PAUSE_DURATION_MINUTES = 5;
+    private readonly localStorageApi: LocalStorageApi;
+
     private $blacklistButton = $('#blacklist');
     private $optionsButton = $('#options');
     private $body = $('body');
+    private $pauseButton = $('#pause');
+    private $pausedIcon = $('#paused-icon');
+    private $enabledIcon = $('#enabled-icon');
+
+    private extensionPausedUntilTime: number | null = null;
+
+    constructor() {
+        this.localStorageApi = new LocalStorageApi();
+    }
 
     public async init(): Promise<void> {
         this.$blacklistButton.on('click', async () => {
@@ -52,6 +66,26 @@ export class PopupJS {
             await browser.runtime.openOptionsPage();
             window.close();
         });
+
+        this.$pauseButton.on('click', async () => {
+            if (!this.isPaused()) {
+                await this.pauseExtension();
+            } else {
+                await this.enableExtension();
+            }
+        });
+        
+        if (document.location.href.endsWith("paused")) {
+            this.renderPause();
+        }
+
+        this.extensionPausedUntilTime = await this.localStorageApi.GetByKey(EXTENSION_PAUSED_UNTIL_KEY);
+        this.renderPauseTimeLeft();
+
+        //Configure a countdown to show pause duration
+        setInterval(async () => {
+            this.renderPauseTimeLeft();
+        }, 999);
     }
 
     private static domain_from_url(url: string): string | null {
@@ -63,7 +97,6 @@ export class PopupJS {
                 result = match[1]
             }
         }
-
         return result;
     }
 
@@ -97,6 +130,76 @@ export class PopupJS {
         } else {
             alert("Url already exists");
         }
+    }
+
+    private async enableExtension() {
+        await this.localStorageApi.RemoveKey(EXTENSION_PAUSED_UNTIL_KEY);
+        this.renderEnabled();
+
+        setIconEnabled();
+    }
+
+    private renderEnabled() {
+        this.extensionPausedUntilTime = null;
+
+        const childElems = this.$pauseButton.children();
+        this.$pauseButton.text("Enabled");
+
+        this.$pausedIcon.hide();
+        this.$enabledIcon.show();
+
+        this.$pauseButton.append(childElems);
+    }
+
+    private async pauseExtension() {
+        this.extensionPausedUntilTime = Date.now() + (PopupJS.DEFAULT_PAUSE_DURATION_MINUTES * 60 * 1000);
+        this.renderPause(`0${PopupJS.DEFAULT_PAUSE_DURATION_MINUTES}:00`);
+
+        //Set storage after rendering for responsiveness
+        await this.localStorageApi.SetByKey(EXTENSION_PAUSED_UNTIL_KEY, this.extensionPausedUntilTime);
+
+        setIconDisabled();
+    }
+
+    private renderPause(timeLeft: string | null = null) {
+        const childElems = this.$pauseButton.children();
+
+        if (timeLeft) {
+            this.$pauseButton.text(`Paused for ${timeLeft}`);
+        } else {
+            this.$pauseButton.text(`Paused`);
+        }
+
+        this.$pausedIcon.show();
+        this.$enabledIcon.hide();
+
+        this.$pauseButton.append(childElems);
+    }
+
+    private renderPauseTimeLeft() {
+        if (this.isPaused()) {
+            let pauseTimeLeftMS = (this.extensionPausedUntilTime || Date.now()) - Date.now();
+
+            let timeLeft = "00:00";
+            if (pauseTimeLeftMS > 0) {
+                const secondsLeft = Math.round(pauseTimeLeftMS / 1000);
+                const minutesLeft = Math.floor(secondsLeft / 60);
+                const secondsRemainder = Math.floor(secondsLeft % 60);
+
+                const minutesLeftString = `${(minutesLeft.toString().length === 1 ? "0" : "")}${minutesLeft}`;
+                const secondsRemainderString = `${(secondsRemainder.toString().length === 1 ? "0" : "")}${secondsRemainder}`;
+                timeLeft = `${minutesLeftString}:${secondsRemainderString}`;
+            }
+            this.renderPause(timeLeft);
+        } else {
+            this.enableExtension();
+        }
+    }
+
+    private isPaused(): boolean {
+        return this.extensionPausedUntilTime != null 
+            && !isNaN(this.extensionPausedUntilTime) 
+            && (this.extensionPausedUntilTime - Date.now() > 0);
     }
 }
 

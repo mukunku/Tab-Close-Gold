@@ -59,4 +59,8 @@ export class CloudStorageApi extends StorageApi {
         let value: Record<string, any> = await browser.storage.sync.get(key);
         return value[key];
     }
+
+	public RemoveKey(key: string): Promise<void> {
+		return browser.storage.sync.remove(key);
+	}
 }

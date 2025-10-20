@@ -61,4 +61,8 @@ export class LocalStorageApi extends StorageApi {
             return value[key];
         }
     }
+
+    public RemoveKey(key: string): Promise<void> {
+        return browser.storage.local.remove(key);
+    }
 }
