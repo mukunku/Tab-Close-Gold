@@ -4,7 +4,7 @@ import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
-import { setIconEnabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
+import { setIconEnabled, setIconDisabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
 import { LocalStorageApi } from "./storage/storage-api.local";
 
 //hydrate the cache to speed up tab inspections
@@ -15,7 +15,7 @@ Logger.getInstance().then((logger) => {
 //need to periodically check to see if we need to pause or re-enable the extension
 const PAUSE_CHECK_INTERVAL_MS = 500;
 let isExtensionPaused = false; 
-let pauseIntervalId = setInterval(checkExtensionPause, PAUSE_CHECK_INTERVAL_MS);
+let pauseIntervalId = setInterval(async () => { await checkExtensionPause(true); }, PAUSE_CHECK_INTERVAL_MS);
 
 browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType, tab: browser.Tabs.Tab) => {
 	await inspectUrl(tab, changeInfo);
@@ -288,7 +288,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 	}
 });
 
-async function checkExtensionPause() {
+async function checkExtensionPause(isFirstRun: boolean) {
 	clearInterval(pauseIntervalId);
 	const localStorageApi = new LocalStorageApi();
 	const pausedUntil = await localStorageApi.GetByKey(EXTENSION_PAUSED_UNTIL_KEY);
@@ -297,9 +297,12 @@ async function checkExtensionPause() {
 		if (!isExtensionPaused) {
 			setIconEnabled();
 			await localStorageApi.RemoveKey(EXTENSION_PAUSED_UNTIL_KEY);
+		} else if (isFirstRun) {
+			//If the user closes the browser while the extension is paused, we need to update the icon accordingly upon first launch
+			setIconDisabled();
 		}
 	} else {
 		isExtensionPaused = false;
 	}
-	pauseIntervalId = setInterval(async () => { await checkExtensionPause(); }, PAUSE_CHECK_INTERVAL_MS);
+	pauseIntervalId = setInterval(async () => { await checkExtensionPause(false); }, PAUSE_CHECK_INTERVAL_MS);
 }
