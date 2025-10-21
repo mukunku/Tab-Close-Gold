@@ -18,6 +18,7 @@ import { Environment } from "./helpers/env";
 import { SessionStorageApi } from "./storage/storage-api.session";
 import { CheckboxOption, ContextMenu, DropdownOption, LinkButton } from "./helpers/context-menu";
 import * as browser from "webextension-polyfill";
+import { LocalStorageApi } from "./storage/storage-api.local";
 
 export class OptionsJS {
     private static readonly columns = [
@@ -155,7 +156,25 @@ export class OptionsJS {
     private slickgrid: Slick.Grid<UrlPattern> | null = null;
     private static contextMenuOpenForRow: number = -1;
 
+    private useDarkMode: boolean | null = null;
+    private useLightMode: boolean | null = null;
+
     public async init(): Promise<void> {
+        (new LocalStorageApi()).GetByKey(StorageApi.USER_PREFERRED_THEME_KEY).then((theme: string) => {
+            if (theme === "dark") {
+                this.useDarkMode = true;
+                this.useLightMode = false;
+            } else if (theme === "light") {
+                this.useDarkMode = false;
+                this.useLightMode = true;
+            } else {
+                this.useDarkMode = false;
+                this.useLightMode = false;
+            }
+
+            this.setTheme();
+        });
+
         //Update storage dropdown
         let storageType = await StorageApi.getUserStorageType();
         let storageTypeString: string = ChromeStorageType[storageType];
@@ -185,6 +204,46 @@ export class OptionsJS {
         ]);
 
         this.attachEvents();
+    }
+
+    private setTheme() {
+        if (!this.useDarkMode && !this.useLightMode) {
+            //Let the system default take over
+            return;
+        }
+
+        //Find our stylesheet
+        let styleSheet: CSSStyleSheet | null = null;
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            if (document.styleSheets[i].href?.endsWith("options.css")) {
+                styleSheet = document.styleSheets[i];
+                break;
+            }
+        }
+
+        if (!styleSheet) {
+            return;
+        }
+
+        //Forcefully set the theme
+        for (let i = 0; i < styleSheet.cssRules.length; i++) {
+            const rule = document.styleSheets[0].cssRules[i] as CSSRule;
+            if (Object.prototype.toString.call(rule) === "[object CSSStyleRule]") {
+                const styleRule = rule as CSSStyleRule;
+                if (styleRule.style.colorScheme == "light dark") {
+                    if (this.useDarkMode) {
+                        styleRule.style.colorScheme = "dark";
+                    } else {
+                        styleRule.style.colorScheme = "light";
+                    }
+                }
+            } else if (Object.prototype.toString.call(rule) === "[object CSSMediaRule]") {
+                const mediaRule = rule as CSSMediaRule;
+                if (mediaRule.conditionText === "(prefers-color-scheme: dark)" && this.useLightMode) {
+                    styleSheet.deleteRule(i);
+                }
+            }
+        }
     }
 
     private attachEvents(): void {
@@ -428,8 +487,15 @@ ${error.message}`;
                 const wikiLink = new LinkButton("User Guide", async () => {
                     await browser.tabs.create({url: "https://github.com/mukunku/Tab-Close-Gold/wiki"})
                 }, undefined, "external-link.png");
+                
+                const useDarkModeCheckbox = new CheckboxOption("Dark mode", this.useDarkMode || (!this.useLightMode && Environment.prefersDarkMode()),
+                    async (checked: boolean) => {
+                        const localStorageApi = new LocalStorageApi();
+                        localStorageApi.SetByKey(StorageApi.USER_PREFERRED_THEME_KEY, checked ? "dark" : "light");
+                        document.location.reload();
+                });
 
-                const contextMenuItems = [closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, deleteAllSettingsButton, wikiLink];
+                const contextMenuItems = [closeLastTabCheckbox, showLogsButton, showImportExportDrawerCheckbox, useDarkModeCheckbox, deleteAllSettingsButton, wikiLink];
                 if (Environment.isDev()) { 
                     const debugStorageDataButton = new LinkButton("Debug storage data", async () => {
                         new ModalWindow('storage-data-modal', {
@@ -443,7 +509,7 @@ ${error.message}`;
                 }
 
                 menu = new ContextMenu(contextMenuItems);
-                menu.render(this.$systemSettingsButton, 290, 140, "up");
+                menu.render(this.$systemSettingsButton, 290, 165, "up");
 
                 event.stopPropagation(); //don't trigger onclick handlers we attached in ContextMenu
             } catch (error: any) {

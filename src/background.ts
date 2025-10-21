@@ -4,7 +4,7 @@ import { PeriodicSettingSyncer } from "./helpers/periodic-setting-syncer";
 import { StorageApi } from "./storage/storage-api";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
-import { setIconEnabled, setIconDisabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
+import { setIconEnabled, setIconDisabled } from "./helpers/utilities";
 import { LocalStorageApi } from "./storage/storage-api.local";
 
 //hydrate the cache to speed up tab inspections
@@ -291,12 +291,12 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 async function checkExtensionPause(isFirstRun: boolean) {
 	clearInterval(pauseIntervalId);
 	const localStorageApi = new LocalStorageApi();
-	const pausedUntil = await localStorageApi.GetByKey(EXTENSION_PAUSED_UNTIL_KEY);
+	const pausedUntil = await localStorageApi.GetByKey(StorageApi.EXTENSION_PAUSED_UNTIL_KEY);
 	if (pausedUntil && !isNaN(pausedUntil)) {
 		isExtensionPaused = pausedUntil - Date.now() > 0;
 		if (!isExtensionPaused) {
 			setIconEnabled();
-			await localStorageApi.RemoveKey(EXTENSION_PAUSED_UNTIL_KEY);
+			await localStorageApi.RemoveKey(StorageApi.EXTENSION_PAUSED_UNTIL_KEY);
 		} else if (isFirstRun) {
 			//If the user closes the browser while the extension is paused, we need to update the icon accordingly upon first launch
 			setIconDisabled();

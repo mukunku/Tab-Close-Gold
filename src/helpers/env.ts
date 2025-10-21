@@ -29,4 +29,8 @@ export class Environment {
     public static isFirefox(): boolean {
         return !browser.storage.local.QUOTA_BYTES; //QUOTA_BYTES is not defined in FF
     }
+
+    public static prefersDarkMode(): boolean {
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
 }

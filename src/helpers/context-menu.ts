@@ -147,7 +147,7 @@ export class ContextMenu {
 
         // Add each option to the list
         this.options.forEach(option => {
-            this.$lastModal?.append($('<div class="option">').html(option.renderHtml()));
+            this.$lastModal?.append($('<div class="option">').append(option.renderHtml()));
         });
 
         // Append the modal to the body

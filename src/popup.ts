@@ -3,7 +3,8 @@ import { StorageApiFactory } from "./storage/storage-api-factory";
 import { MatchBy, UrlPattern } from "./storage/url-pattern";
 import * as browser from "webextension-polyfill";
 import { LocalStorageApi } from "./storage/storage-api.local";
-import { setIconEnabled, setIconDisabled, EXTENSION_PAUSED_UNTIL_KEY } from "./helpers/utilities";
+import { StorageApi } from "./storage/storage-api"
+import { setIconEnabled, setIconDisabled } from "./helpers/utilities";
 
 export class PopupJS {
     private static readonly DEFAULT_PAUSE_DURATION_MINUTES = 5;
@@ -79,7 +80,7 @@ export class PopupJS {
             this.renderPause();
         }
 
-        this.extensionPausedUntilTime = await this.localStorageApi.GetByKey(EXTENSION_PAUSED_UNTIL_KEY);
+        this.extensionPausedUntilTime = await this.localStorageApi.GetByKey(StorageApi.EXTENSION_PAUSED_UNTIL_KEY);
         this.renderPauseTimeLeft();
 
         //Configure a countdown to show pause duration
@@ -133,7 +134,7 @@ export class PopupJS {
     }
 
     private async enableExtension() {
-        await this.localStorageApi.RemoveKey(EXTENSION_PAUSED_UNTIL_KEY);
+        await this.localStorageApi.RemoveKey(StorageApi.EXTENSION_PAUSED_UNTIL_KEY);
         this.renderEnabled();
 
         setIconEnabled();
@@ -156,7 +157,7 @@ export class PopupJS {
         this.renderPause(`0${PopupJS.DEFAULT_PAUSE_DURATION_MINUTES}:00`);
 
         //Set storage after rendering for responsiveness
-        await this.localStorageApi.SetByKey(EXTENSION_PAUSED_UNTIL_KEY, this.extensionPausedUntilTime);
+        await this.localStorageApi.SetByKey(StorageApi.EXTENSION_PAUSED_UNTIL_KEY, this.extensionPausedUntilTime);
 
         setIconDisabled();
     }
