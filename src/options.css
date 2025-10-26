@@ -17,7 +17,7 @@
 		--background-color: #0F0F0F;
 		--hover-icons-filter: invert(100%);
 	}
-	.slick-header-column  {
+	.slick-header-column, .slick-header-columns  {
 		background: var(--accent-color) !important;
 	}
 	button {
@@ -297,4 +297,5 @@ div:not(.new-row)>.r3.slick-cell:empty {
 
 .error-log {
 	color: #F63E02;
+
 }
