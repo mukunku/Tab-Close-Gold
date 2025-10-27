@@ -78,9 +78,9 @@ export class OptionsJS {
             resizable: false,
             formatter: (row: any, cell: any, value: any, columndef: any, datacontext: any) => {
                 if (!value || value <= 0) {
-                    return '<img class="pointer" src="./images/stopwatch-inactive.png">';
+                    return `<img class="pointer" src="./images/stopwatch-inactive.png" alt="No delay">`;
                 } else {
-                    return '<img class="pointer" src="./images/stopwatch-active.png">';
+                    return `<img class="pointer" src="./images/stopwatch-active.png" alt="${value} millisecond delay" title="${value}ms">`;
                 }
             },
             cannotTriggerInsert: true,
