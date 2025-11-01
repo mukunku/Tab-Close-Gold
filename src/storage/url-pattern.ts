@@ -60,7 +60,8 @@ export class UrlPattern {
                 url.startsWith('chrome-extension:') || 
                 url.startsWith('chrome:') || 
                 url.startsWith('about:') || 
-                url.startsWith('moz-extension:')
+                url.startsWith('moz-extension:') ||
+                url.startsWith('edge:')
             ) || (title && (
                 title === 'Tab Close Gold - Options' || 
                 title === 'New Tab' || 
