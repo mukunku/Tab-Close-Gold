@@ -484,7 +484,7 @@ ${error.message}`;
                         menu?.remove();
                     });
 
-                const wikiLink = new LinkButton("User Guide", async () => {
+                const wikiLink = new LinkButton("User guide", async () => {
                     await browser.tabs.create({url: "https://github.com/mukunku/Tab-Close-Gold/wiki"})
                 }, undefined, "external-link.png");
                 
