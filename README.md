@@ -33,7 +33,7 @@ Follow these steps to get the extension working locally.
    * For Edge go to `edge://extensions/` and enable developer mode in the left navigation bar
 5. Click `Load unpacked` and select the `src` folder
 6. The browser will now have your local version of the extension running
-7. As you make code changes you can click `Update` to update the extension in Chrome.
+7. As you make code changes you can click `Update` to update the extension in the browser
 
 #### Testing in Firefox
 1. Clone the repo and open a command prompt to the `src` folder
