@@ -210,6 +210,8 @@ async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<bo
 }
 
 const tabIdMutex = new Map<number, Mutex>(); //This gets periodically cleared as the background script goes inactive
+// JS is single-threaded: the synchronous check-and-set below is atomic (no await = no interleaving),
+// so two concurrent callers for the same tabId cannot both see undefined and create separate mutexes.
 function acquireTabLock(tabId: number): Mutex {
 	let mutex = tabIdMutex.get(tabId);
 	if (!mutex) {
