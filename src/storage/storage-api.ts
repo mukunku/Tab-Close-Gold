@@ -61,23 +61,18 @@ export abstract class StorageApi {
             return false;
         }
 
-        function getStorageSettingValue(storageTypeValue: ChromeStorageType) {
-            if (storageTypeValue === ChromeStorageType.Cloud) {
-                return StorageApi.STORAGE_TYPE_CLOUD;
-            } else if (storageTypeValue === ChromeStorageType.Local) {
-                return StorageApi.STORAGE_TYPE_LOCAL;
-            } else {
-                throw new Error(`Unsupported new storage type: ${storageTypeValue}`);
-            }
-        }
+        const storageSettingByType: Partial<Record<ChromeStorageType, object>> = {
+            [ChromeStorageType.Cloud]: StorageApi.STORAGE_TYPE_CLOUD,
+            [ChromeStorageType.Local]: StorageApi.STORAGE_TYPE_LOCAL,
+        };
 
         try {
-            //Get new storage location setting. We do this first to verify the new storage type is supported
-            let setting = getStorageSettingValue(desiredStorageApi.storageType);
-
+            const setting = storageSettingByType[desiredStorageApi.storageType];
+            if (!setting) {
+                throw new Error(`Unsupported new storage type: ${desiredStorageApi.storageType}`);
+            }
             //Migrate the settings to the new storage location
             await this.migrateSettings(desiredStorageApi);
-
             //If we got here that means migration was successful, so mark storage type accordingly
             await browser.storage.sync.set(setting);
         } catch (error: any) {
@@ -94,28 +89,21 @@ export abstract class StorageApi {
 
     private parseSettings(optionsRaw: any): UrlPattern[] {
          //check if the data is partitioned (for cloud storage)
-        var isPartitionedData = !!(optionsRaw['config-2']);
+        const isPartitionedData = !!(optionsRaw['config-2']);
 
         let settings: UrlPattern[] = [];
         if (isPartitionedData) {
-            let isDone = false;
-            let i = 1;
-            while (!isDone) {
-                var partition = optionsRaw['config-' + i.toString()];
-                i++;
-                if (partition) {
-                    let jsonString = LZString.decompressFromUTF16(partition);
-                    if (jsonString) {
-                        let settingsPartition = JSON.parse(jsonString) as UrlPattern[];
-                        settings = settings.concat(settingsPartition);
-                    }
-                } else {
-                    isDone = true;
+            for (let i = 1; ; i++) {
+                const partition = optionsRaw['config-' + i];
+                if (!partition) break;
+                const jsonString = LZString.decompressFromUTF16(partition);
+                if (jsonString) {
+                    settings = settings.concat(JSON.parse(jsonString) as UrlPattern[]);
                 }
             }
         } else if (optionsRaw['config-1']) {
             //Single row of data detected (Usually means we're using Local storage)
-            let jsonString = LZString.decompressFromUTF16(optionsRaw['config-1']);
+            const jsonString = LZString.decompressFromUTF16(optionsRaw['config-1']);
             if (jsonString) {
                 settings = JSON.parse(jsonString) as UrlPattern[];
             }
@@ -125,19 +113,17 @@ export abstract class StorageApi {
         }
 
         //make sure each setting has valid values. Only needed for new fields but double checking all fields can't hurt
-        settings = settings.map(urlPattern => {
-            urlPattern.pattern = urlPattern.pattern || "";
-            urlPattern.isRegex = urlPattern.isRegex === true ? true : false;
-            urlPattern.enabled = urlPattern.enabled === false ? false : true;
-            urlPattern.matchBy = urlPattern.matchBy in MatchBy ? urlPattern.matchBy : MatchBy.Url;
-            urlPattern.delayInMs = urlPattern.delayInMs !== null && !isNaN(urlPattern.delayInMs) 
-                ? urlPattern.delayInMs : 0;
-            urlPattern.hitCount = urlPattern.hitCount !== null && !isNaN(urlPattern.hitCount) 
-                ? urlPattern.hitCount : 0;
-            urlPattern.lastHitOn = urlPattern.lastHitOn !== undefined ? urlPattern.lastHitOn : null;
-            urlPattern.lastHits = urlPattern.lastHits || [];
-            return urlPattern;
-        });
+        settings = settings.map(urlPattern => ({
+            ...urlPattern,
+            pattern: urlPattern.pattern || "",
+            isRegex: urlPattern.isRegex === true,
+            enabled: urlPattern.enabled !== false,
+            matchBy: urlPattern.matchBy in MatchBy ? urlPattern.matchBy : MatchBy.Url,
+            delayInMs: urlPattern.delayInMs !== null && !isNaN(urlPattern.delayInMs) ? urlPattern.delayInMs : 0,
+            hitCount: urlPattern.hitCount !== null && !isNaN(urlPattern.hitCount) ? urlPattern.hitCount : 0,
+            lastHitOn: urlPattern.lastHitOn !== undefined ? urlPattern.lastHitOn : null,
+            lastHits: urlPattern.lastHits || [],
+        }));
 
         return settings;
     }
@@ -151,11 +137,9 @@ export abstract class StorageApi {
         const rawConfigs = await this.browserStorageArea.get(null);
 
         //Loop through all items and decompress configs
-        for (var properyName in rawConfigs) {
-            if (Object.prototype.hasOwnProperty.call(rawConfigs, properyName)) {
-                if (properyName.startsWith("config-")) {
-                    rawConfigs[properyName] = LZString.decompressFromUTF16(rawConfigs[properyName]);
-                }
+        for (const key of Object.keys(rawConfigs)) {
+            if (key.startsWith("config-")) {
+                rawConfigs[key] = LZString.decompressFromUTF16(rawConfigs[key]);
             }
         }
 

@@ -11,9 +11,9 @@ export class CircularLogBuffer<T> {
   }
 
   public pushAll(values: T[]): void {
-    if (values && Array.isArray(values)) {
-      for(let i = 0; i < values.length; i++) {
-        this.push(values[i]);
+    if (Array.isArray(values)) {
+      for (const value of values) {
+        this.push(value);
       }
     }
   }

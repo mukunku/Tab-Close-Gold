@@ -47,19 +47,12 @@ export class LocalStorageApi extends StorageApi {
     }
 
     public SetByKey(key: string, value: any): Promise<void> {
-        var keyValue = {} as any;
-        keyValue[key] = value;
-        return browser.storage.local.set(keyValue);
+        return browser.storage.local.set({ [key]: value });
     }
 
     public async GetByKey(key: string | null): Promise<any> {
-        let value: Record<string, any> = await browser.storage.local.get(key);
-
-        if (key == null) {
-            return value;
-        } else {
-            return value[key];
-        }
+        const value = await browser.storage.local.get(key);
+        return key == null ? value : value[key];
     }
 
     public RemoveKey(key: string): Promise<void> {

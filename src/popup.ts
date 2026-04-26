@@ -90,41 +90,29 @@ export class PopupJS {
     }
 
     private static domain_from_url(url: string): string | null {
-        let result = null;
-        let match;
-        if (match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n\?\=]+)/im)) {
-            result = match[1]
-            if (match = result.match(/^[^\.]+\.(.+\..+)$/)) {
-                result = match[1]
-            }
-        }
-        return result;
+        const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:/\n?=]+)/im);
+        if (!match) return null;
+        const subdomain = match[1].match(/^[^.]+\.(.+\..+)$/);
+        return subdomain ? subdomain[1] : match[1];
     }
 
     private async saveNewUrlToStorage(url: string, tabId: number, fullUrl: string): Promise<void> {
-        let storageApi = await StorageApiFactory.getStorageApi();
-        let configs = await storageApi.getSettings();
-        var alreadyExists = false;
-        for (var i = 0; i < configs.length; i++) {
-            var config = configs[i];
-            if (config.pattern.trim() === url.trim() && config.isRegex === false) {
-                alreadyExists = true;
-                break;
-            }
-        }
+        const storageApi = await StorageApiFactory.getStorageApi();
+        const configs = await storageApi.getSettings();
+        const alreadyExists = configs.some(c => c.pattern.trim() === url.trim() && c.isRegex === false);
 
         if (!alreadyExists) {
-            let newConfig = new UrlPattern(url, false, MatchBy.Url);
+            const newConfig = new UrlPattern(url, false, MatchBy.Url);
             newConfig.lastHits.push(fullUrl);
             newConfig.hitCount = 1;
             newConfig.lastHitOn = new Date();
 
             configs.push(newConfig);
             await storageApi.saveSettings(configs, true);
-            let tabs = await browser.tabs.query({ windowType: 'normal' });
+            const tabs = await browser.tabs.query({ windowType: 'normal' });
             if (tabs.length === 1) {
                 //If this is the only tab, lets not close the tab in order to prevent an infinite loop which can happen in rare cases
-                await browser.tabs.update(tabId, { url: "about:blank" })
+                await browser.tabs.update(tabId, { url: "about:blank" });
             } else {
                 await browser.tabs.remove(tabId);
             }
@@ -179,17 +167,14 @@ export class PopupJS {
 
     private renderPauseTimeLeft() {
         if (this.isPaused()) {
-            let pauseTimeLeftMS = (this.extensionPausedUntilTime || Date.now()) - Date.now();
+            const pauseTimeLeftMS = (this.extensionPausedUntilTime || Date.now()) - Date.now();
 
             let timeLeft = "00:00";
             if (pauseTimeLeftMS > 0) {
                 const secondsLeft = Math.round(pauseTimeLeftMS / 1000);
                 const minutesLeft = Math.floor(secondsLeft / 60);
-                const secondsRemainder = Math.floor(secondsLeft % 60);
-
-                const minutesLeftString = `${(minutesLeft.toString().length === 1 ? "0" : "")}${minutesLeft}`;
-                const secondsRemainderString = `${(secondsRemainder.toString().length === 1 ? "0" : "")}${secondsRemainder}`;
-                timeLeft = `${minutesLeftString}:${secondsRemainderString}`;
+                const secondsRemainder = secondsLeft % 60;
+                timeLeft = `${String(minutesLeft).padStart(2, '0')}:${String(secondsRemainder).padStart(2, '0')}`;
             }
             this.renderPause(timeLeft);
         } else {

@@ -213,29 +213,19 @@ export class OptionsJS {
         }
 
         //Find our stylesheet
-        let styleSheet: CSSStyleSheet | null = null;
-        for (let i = 0; i < document.styleSheets.length; i++) {
-            if (document.styleSheets[i].href?.endsWith("options.css")) {
-                styleSheet = document.styleSheets[i];
-                break;
-            }
-        }
+        const styleSheet = Array.from(document.styleSheets)
+            .find((s: CSSStyleSheet) => s.href?.endsWith("options.css")) as CSSStyleSheet | undefined;
 
         if (!styleSheet) {
             return;
         }
 
         //Forcefully set the theme
-        for (let i = 0; i < styleSheet.cssRules.length; i++) {
-            const rule = document.styleSheets[0].cssRules[i] as CSSRule;
+        Array.from(styleSheet.cssRules).forEach((rule: CSSRule, i: number) => {
             if (Object.prototype.toString.call(rule) === "[object CSSStyleRule]") {
                 const styleRule = rule as CSSStyleRule;
-                if (styleRule.style.colorScheme == "light dark") {
-                    if (this.useDarkMode) {
-                        styleRule.style.colorScheme = "dark";
-                    } else {
-                        styleRule.style.colorScheme = "light";
-                    }
+                if (styleRule.style.colorScheme === "light dark") {
+                    styleRule.style.colorScheme = this.useDarkMode ? "dark" : "light";
                 }
             } else if (Object.prototype.toString.call(rule) === "[object CSSMediaRule]") {
                 const mediaRule = rule as CSSMediaRule;
@@ -243,7 +233,7 @@ export class OptionsJS {
                     styleSheet.deleteRule(i);
                 }
             }
-        }
+        });
     }
 
     private attachEvents(): void {
@@ -263,33 +253,18 @@ export class OptionsJS {
 
         this.$exportConfigButton.on('click', () => {
             try {
-                let exportConfig = this.slickgrid?.getData() as UrlPattern[];
-                let output = new Array(exportConfig.length);
-                for (var i = 0; i < exportConfig.length; i++) {
-                    output[i] = {
-                        pattern: exportConfig[i].pattern
-                    };
-
-                    if (exportConfig[i].delayInMs > 0) {
-                        output[i].delayInMs = exportConfig[i].delayInMs;
-                    }
-
-                    if (!exportConfig[i].enabled) {
-                        output[i].enabled = false;
-                    }
-
-                    if (exportConfig[i].isRegex) {
-                        output[i].isRegex = true;
-                    }
-
-                    if (exportConfig[i].matchBy != MatchBy.Url) {
-                        output[i].matchBy = MatchBy[exportConfig[i].matchBy];
-                    }
-                }
+                const exportConfig = this.slickgrid?.getData() as UrlPattern[];
+                const output = exportConfig.map(item => {
+                    const entry: any = { pattern: item.pattern };
+                    if (item.delayInMs > 0) entry.delayInMs = item.delayInMs;
+                    if (!item.enabled) entry.enabled = false;
+                    if (item.isRegex) entry.isRegex = true;
+                    if (item.matchBy !== MatchBy.Url) entry.matchBy = MatchBy[item.matchBy];
+                    return entry;
+                });
                 this.$configTextArea.val(JSON.stringify(output));
             } catch (error: any) {
-                const errorMessage = `Something went wrong
-${error.message}`;
+                const errorMessage = `Something went wrong\n${error.message}`;
                 console.error(errorMessage);
                 alert(errorMessage);
             }
@@ -307,24 +282,24 @@ ${error.message}`;
                 }
 
                 var importConfig: any[] = JSON.parse(jsonToImport);
-                let existingConfigs: UrlPattern[] = this.slickgrid.getData();
+                const existingConfigs: UrlPattern[] = this.slickgrid.getData();
                 let importedCount = 0;
-                for (let i = 0; i < importConfig.length; i++) {
-                    const config = importConfig[i];
-
+                for (const config of importConfig) {
                     if (config && config.pattern && config.pattern.trim()) {
                         const matchBy: string = config.matchBy || MatchBy[MatchBy.Url];
-                        let urlPattern = new UrlPattern(config.pattern.trim(), 
+                        const urlPattern = new UrlPattern(config.pattern.trim(), 
                             !!config.isRegex, 
                             MatchBy[matchBy as keyof typeof MatchBy]);
 
-                        urlPattern.enabled = config.enabled === false ? false : true;
+                        urlPattern.enabled = config.enabled !== false;
                         urlPattern.delayInMs = Math.min(UrlPattern.MAX_DELAY_IN_MILLISECONDS, config.delayInMs || 0);
 
                         //only add the pattern if it doesn't already exist
-                        if (existingConfigs.filter(ec => ec.pattern === urlPattern.pattern
-                            && ec.isRegex === urlPattern.isRegex 
-                            && ec.matchBy === urlPattern.matchBy).length === 0) {
+                        const isDuplicate = existingConfigs.some(ec =>
+                            ec.pattern === urlPattern.pattern
+                            && ec.isRegex === urlPattern.isRegex
+                            && ec.matchBy === urlPattern.matchBy);
+                        if (!isDuplicate) {
                             existingConfigs.push(urlPattern);
                             importedCount++;
                         }
@@ -339,7 +314,7 @@ ${error.message}`;
                     await this.saveSettings();
                 }
 
-                if (importedCount == 1) {
+                if (importedCount === 1) {
                     alert(`1 new record imported`);
                 } else {
                     alert(`${importedCount} new records imported`);
@@ -359,10 +334,7 @@ ${error.message}`;
 
                 let menu: ContextMenu | null = null;
 
-                let dontCloseLastTabSetting = await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY) as boolean;
-                if (dontCloseLastTabSetting || dontCloseLastTabSetting == null || dontCloseLastTabSetting == undefined) {
-                    dontCloseLastTabSetting = true;
-                }
+                let dontCloseLastTabSetting = (await storageApi.GetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY)) !== false;
                 const closeLastTabCheckbox = new CheckboxOption("Prevent browser shutdown on last tab close", dontCloseLastTabSetting,
                     async (checked: boolean) => {
                         storageApi.SetByKey(StorageApi.DONT_CLOSE_LAST_TAB_KEY, checked);
@@ -559,24 +531,23 @@ ${error.message}`;
         }
     }
 
-    private validateAllSettings(): Boolean {
+    private validateAllSettings(): boolean {
+        const gridData: UrlPattern[] = this.slickgrid?.getData();
         let isValid = true;
-        let gridData: UrlPattern[] = this.slickgrid?.getData();
-        
-        for (let rowIndex = 0; rowIndex < gridData.length; rowIndex++) {
-            let urlPattern = gridData[rowIndex];
-            if ((urlPattern.pattern || '').trim() === '') {
+
+        gridData.forEach((urlPattern, rowIndex) => {
+            if (!(urlPattern.pattern || '').trim()) {
                 isValid = false;
                 this.flashPatternCell(rowIndex);
             } else if (urlPattern.isRegex) {
                 try {
                     new RegExp(urlPattern.pattern);
-                } catch (error) {
+                } catch {
                     isValid = false;
                     this.flashPatternCell(rowIndex);
                 }
             }
-        }
+        });
 
         return isValid;
     }
@@ -739,26 +710,23 @@ ${error.message}`;
             await saveSettings();
         }, 'user-select: none;');
 
-        let currentValue = "Url";
-        if (gridRow.matchBy === MatchBy.Url) {
-            currentValue = "Url";
-        } else if (gridRow.matchBy === MatchBy.Title) {
-            currentValue = "Title";
-        } else if (gridRow.matchBy === MatchBy.Url_or_Title) {
-            currentValue = "Url or Title";
-        }
+        const matchByLabels: Record<MatchBy, string> = {
+            [MatchBy.Url]: "Url",
+            [MatchBy.Title]: "Title",
+            [MatchBy.Url_or_Title]: "Url or Title"
+        };
+        const currentValue = matchByLabels[gridRow.matchBy as MatchBy] ?? "Url";
 
         const matchByDropdown = new DropdownOption("Match by: ", ["Url", "Title", "Url or Title"], currentValue, async (dropdown: string) => {
-            if (dropdown === "Url") {
-                gridRow.matchBy = MatchBy.Url;
-            } else if (dropdown === "Title") {
-                gridRow.matchBy = MatchBy.Title;
-            } else if (dropdown === "Url or Title") {
-                gridRow.matchBy = MatchBy.Url_or_Title;
-            } else {
-                return;
+            const matchByValues: Record<string, MatchBy> = {
+                "Url": MatchBy.Url,
+                "Title": MatchBy.Title,
+                "Url or Title": MatchBy.Url_or_Title
+            };
+            if (dropdown in matchByValues) {
+                gridRow.matchBy = matchByValues[dropdown];
+                await saveSettings();
             }
-            await saveSettings();
         });
 
         const resetHitsButton = new LinkButton("Reset hits", async () => {

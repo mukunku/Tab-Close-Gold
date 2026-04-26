@@ -15,7 +15,7 @@ Logger.getInstance().then((logger) => {
 //need to periodically check to see if we need to pause or re-enable the extension
 const PAUSE_CHECK_INTERVAL_MS = 500;
 let isExtensionPaused = false; 
-let pauseIntervalId = setInterval(async () => { await checkExtensionPause(true); }, PAUSE_CHECK_INTERVAL_MS);
+let pauseIntervalId = setInterval(() => checkExtensionPause(true), PAUSE_CHECK_INTERVAL_MS);
 
 browser.tabs.onUpdated.addListener(async (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType, tab: browser.Tabs.Tab) => {
 	await inspectUrl(tab, changeInfo);
@@ -34,21 +34,16 @@ function containsString(input?: string, searchPattern?: string, isRegex?: boolea
 		return false;
 	}
 
-	var isHit = false;
 	if (!isRegex) {
-		isHit = input.indexOf(searchPattern) >= 0;
-	} else {
-		let regex = regexpCache.get(searchPattern);
-		if (!regex) {
-			regex = new RegExp(searchPattern);
-			regexpCache.set(searchPattern, regex);
-		}
-
-		if (input.search(regex) >= 0) {
-			isHit = true;
-		}
+		return input.includes(searchPattern);
 	}
-	return isHit;
+
+	let regex = regexpCache.get(searchPattern);
+	if (!regex) {
+		regex = new RegExp(searchPattern);
+		regexpCache.set(searchPattern, regex);
+	}
+	return regex.test(input);
 }
 
 async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpdatedChangeInfoType): Promise<void> {
@@ -75,9 +70,8 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 		}
 
 		const periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
-		let configs = periodicSettingSyncer.configs;
-		for (var i = 0; i < configs.length; i++) {
-			var config = configs[i];
+		const configs = periodicSettingSyncer.configs;
+		for (const config of configs) {
 			if (!config || !config.enabled || !config.pattern || !config.pattern.trim()) { //make sure user didn't save empty string
 				continue;
 			}
@@ -85,8 +79,8 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			Logger.logTrace(`Checking '${tabUrl}' and '${tabTitle}' against pattern ${config.pattern} with ${MatchBy[config.matchBy]}`);
 
 			//handle wild cards if necessary
-			var isRegex = config.isRegex;
-			var pattern = config.pattern.trim();
+			let isRegex = config.isRegex;
+			let pattern = config.pattern.trim();
 			if (!isRegex && pattern.includes('*')) {
 				// We escape all regex reserved chars except star '*'
 				pattern = pattern
@@ -97,26 +91,24 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 
 			let isHit = false;
 			const matchBy = config.matchBy || MatchBy.Url;
-			let matchedPattern: string = "";
-			let matchedBy: string = "";
+			let matchedPattern = "";
+			let matchedBy = "";
 			if (tabUrl && (matchBy === MatchBy.Url || matchBy === MatchBy.Url_or_Title)) {
-				if (!config.isRegex) {
-					isHit = containsString(tabUrl.toLocaleLowerCase(), pattern.toLocaleLowerCase(), isRegex);
-				} else {
-					isHit = containsString(tabUrl, pattern, isRegex);
-				}
-
+				isHit = containsString(
+					config.isRegex ? tabUrl : tabUrl.toLocaleLowerCase(),
+					config.isRegex ? pattern : pattern.toLocaleLowerCase(),
+					isRegex
+				);
 				matchedPattern = tabUrl;
-				matchedBy = "Url"
+				matchedBy = "Url";
 			}
 
 			if (!isHit && tabTitle && (matchBy === MatchBy.Title || matchBy === MatchBy.Url_or_Title)) {
-				if (!config.isRegex) {
-					isHit = containsString(tabTitle.toLocaleLowerCase(), pattern.toLocaleLowerCase(), isRegex);
-				} else {
-					isHit = containsString(tabTitle, pattern, isRegex);
-				}
-
+				isHit = containsString(
+					config.isRegex ? tabTitle : tabTitle.toLocaleLowerCase(),
+					config.isRegex ? pattern : pattern.toLocaleLowerCase(),
+					isRegex
+				);
 				matchedPattern = tabTitle;
 				matchedBy = "Title";
 			}
@@ -138,42 +130,28 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 
 				//Tell the syncer there's new statistics to save
 				periodicSettingSyncer.hasNewHits = true;
-			}
+			};
+
+			const closeAndLog = async (isDelayed: boolean, timeout?: number) => {
+				const wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
+				if (wasClosed) {
+					saveHit();
+					Logger.logDebug(isDelayed
+						? `Scheduled tab closing for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`
+						: `${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Tab has been closed.`);
+				} else {
+					Logger.logDebug(isDelayed
+						? `Scheduled tab was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`
+						: `${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
+				}
+			};
 
 			if (config.delayInMs > 0) {
-				let timeout = Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS);
-
+				const timeout = Math.min(config.delayInMs, UrlPattern.MAX_DELAY_IN_MILLISECONDS);
 				Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Scheduling tab to be closed in ${timeout}ms`);
-
-				setTimeout(async () => {
-					let wasClosed = false;
-					try {
-						wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
-						if (wasClosed) {
-							saveHit();
-						}
-					} finally {
-						if (wasClosed) {
-							Logger.logDebug(`Scheduled tab closing for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
-						} else {
-							Logger.logDebug(`Scheduled tab was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
-						}
-					}
-				}, timeout);
-			} else { // close the tab immediately
-				let wasClosed = false;
-				try {
-					wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
-					if (wasClosed) {
-						saveHit();
-					}
-				} finally {
-					if (wasClosed) {
-						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Tab has been closed.`);
-					} else {
-						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
-					}
-				}
+				setTimeout(() => closeAndLog(true, timeout), timeout);
+			} else {
+				await closeAndLog(false);
 			}
 
 			return; //we're done! 
@@ -195,7 +173,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 		if (!errorMessage.startsWith("No tab with id:") /*Chrome*/ && !errorMessage.startsWith("Invalid tab ID:") /*Firefox*/) {
 			Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${error.message}`);
 		} else {
-			Logger.logTrace(`Tab with url '${tabUrl}' and title '${tabTitle}' was already closed`)
+			Logger.logTrace(`Tab with url '${tabUrl}' and title '${tabTitle}' was already closed`);
 		}
 	}
 }
@@ -203,7 +181,7 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<boolean> {
 	//We need exclusive access to tabs so hit statistics are accurate. This is because
 	//we now allow matching by title and url so if both match that counts as two hits without locking.
-	const release = await (await acquireTabLock(tabId)).acquire();
+	const release = await acquireTabLock(tabId).acquire();
 	try {
 		//check if this is the only tab
 		const tabsPromise = browser.tabs.query({ windowType: 'normal' });
@@ -232,19 +210,11 @@ async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<bo
 }
 
 const tabIdMutex = new Map<number, Mutex>(); //This gets periodically cleared as the background script goes inactive
-async function acquireTabLock(tabId: number): Promise<Mutex> {
+function acquireTabLock(tabId: number): Mutex {
 	let mutex = tabIdMutex.get(tabId);
 	if (!mutex) {
-		const release = await new Mutex().acquire();
-		try {
-			mutex = tabIdMutex.get(tabId);
-			if (!mutex) {
-				mutex = new Mutex();
-				tabIdMutex.set(tabId, mutex);
-			}
-		} finally {
-			release();
-		}
+		mutex = new Mutex();
+		tabIdMutex.set(tabId, mutex);
 	}
 	return mutex;
 }
@@ -256,17 +226,17 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 
 	try {
 		let haveSavedConfigsChanged = false;
-		for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-			if (key === StorageApi.LAST_SAVE_DATE_KEY) {
+		for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+			if (key === StorageApi.LAST_SAVE_DATE_KEY || key === StorageApi.DONT_CLOSE_LAST_TAB_KEY) {
 				const logger = await Logger.getInstance();
+				const periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
 
-				//User changed something on the options page. Tell the syncer to refresh configs.
-				let periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
-				periodicSettingSyncer.hasNewConfigs = true;
-			} else if (key === StorageApi.DONT_CLOSE_LAST_TAB_KEY) {
-				const logger = await Logger.getInstance();
-				let periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
-				periodicSettingSyncer.dontCloseLastTab = newValue;
+				if (key === StorageApi.LAST_SAVE_DATE_KEY) {
+					//User changed something on the options page. Tell the syncer to refresh configs.
+					periodicSettingSyncer.hasNewConfigs = true;
+				} else {
+					periodicSettingSyncer.dontCloseLastTab = newValue;
+				}
 			}
 
 			if (key?.startsWith("config-")) {
@@ -304,5 +274,5 @@ async function checkExtensionPause(isFirstRun: boolean) {
 	} else {
 		isExtensionPaused = false;
 	}
-	pauseIntervalId = setInterval(async () => { await checkExtensionPause(false); }, PAUSE_CHECK_INTERVAL_MS);
+	pauseIntervalId = setInterval(() => checkExtensionPause(false), PAUSE_CHECK_INTERVAL_MS);
 }

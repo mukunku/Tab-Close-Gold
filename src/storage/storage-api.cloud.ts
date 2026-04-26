@@ -28,35 +28,27 @@ export class CloudStorageApi extends StorageApi {
     }
 
     private generatePartitionedOptionsForCloudStorage(data: UrlPattern[]): any {
-		function splitArrayIntoChunksOfLen(arr: Array<any>, len: number) {
-			var chunks = [], i = 0, n = arr.length;
-			while (i < n) {
-				chunks.push(arr.slice(i, i += len));
-			}
-			return chunks;
-		};
-			
-        var rowCountPerItem = Math.ceil(data.length / CloudStorageApi.MAX_PARTITION_COUNT);
-		var splitData = splitArrayIntoChunksOfLen(data, rowCountPerItem);
-		
-		var config = {} as any;
-		for (var i = 0; i < CloudStorageApi.MAX_PARTITION_COUNT; i++) {
-			if (i < splitData.length)
-				config['config-' + (i + 1).toString()] = LZString.compressToUTF16(JSON.stringify(splitData[i]));
-			else
-				config['config-' + (i + 1).toString()] = null;
-		}
-		return config;
-	}
+        const chunkSize = Math.max(1, Math.ceil(data.length / CloudStorageApi.MAX_PARTITION_COUNT));
+        const chunks: UrlPattern[][] = [];
+        for (let i = 0; i < data.length; i += chunkSize) {
+            chunks.push(data.slice(i, i + chunkSize));
+        }
+
+        const config: any = {};
+        for (let i = 0; i < CloudStorageApi.MAX_PARTITION_COUNT; i++) {
+            config[`config-${i + 1}`] = i < chunks.length
+                ? LZString.compressToUTF16(JSON.stringify(chunks[i]))
+                : null;
+        }
+        return config;
+    }
 
 	public async SetByKey(key: string, value: any): Promise<void> {
-        var keyValue = {} as any;
-        keyValue[key] = value;
-        return browser.storage.sync.set(keyValue);
+        return browser.storage.sync.set({ [key]: value });
     }
 
     public async GetByKey(key: string): Promise<any> {
-        let value: Record<string, any> = await browser.storage.sync.get(key);
+        const value = await browser.storage.sync.get(key);
         return value[key];
     }
 

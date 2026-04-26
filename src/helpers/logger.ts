@@ -68,63 +68,43 @@ export class Logger {
     }
 
     public logTrace(message: string): void {
-        if ((this.minLogLevel & LogLevel.Trace) !== LogLevel.Trace) {
-            return;
-        }
-
+        if ((this.minLogLevel & LogLevel.Trace) !== LogLevel.Trace) return;
         console.log(LogRecord.timestampMessage(message));
         this.log(message, LogLevel.Trace);
     }
 
     public static logTrace(message: string): void {
-        Logger.getInstance().then((logger: Logger) => {
-            logger.logTrace(message);
-        });
+        Logger.getInstance().then(logger => logger.logTrace(message));
     }
 
     public logDebug(message: string): void {
-        if ((this.minLogLevel & LogLevel.Debug) !== LogLevel.Debug) {
-            return;
-        }
-
-        console.log(LogRecord.timestampMessage(message))
+        if ((this.minLogLevel & LogLevel.Debug) !== LogLevel.Debug) return;
+        console.log(LogRecord.timestampMessage(message));
         this.log(message, LogLevel.Debug);
     }
 
     public static logDebug(message: string): void {
-        Logger.getInstance().then((logger: Logger) => {
-            logger.logDebug(message);
-        });
+        Logger.getInstance().then(logger => logger.logDebug(message));
     }
 
     public logWarning(message: string): void {
-        if ((this.minLogLevel & LogLevel.Warning) !== LogLevel.Warning) {
-            return;
-        }
-
+        if ((this.minLogLevel & LogLevel.Warning) !== LogLevel.Warning) return;
         console.warn(LogRecord.timestampMessage(message));
         this.log(message, LogLevel.Warning);
     }
 
     public static logWarning(message: string): void {
-        Logger.getInstance().then((logger: Logger) => {
-            logger.logWarning(message);
-        });
+        Logger.getInstance().then(logger => logger.logWarning(message));
     }
 
     public logError(message: string): void {
-        if ((this.minLogLevel & LogLevel.Error) !== LogLevel.Error) {
-            return;
-        }
-
+        if ((this.minLogLevel & LogLevel.Error) !== LogLevel.Error) return;
         console.error(LogRecord.timestampMessage(message));
         this.log(message, LogLevel.Error);
     }
 
     public static logError(message: string): void {
-        Logger.getInstance().then((logger: Logger) => {
-            logger.logError(message);
-        });
+        Logger.getInstance().then(logger => logger.logError(message));
     }
 
     private log(message: string, logLevel: LogLevel) {
@@ -204,17 +184,17 @@ export class LogRecord {
     }
 
     public renderHtml() {
-        let boldify = (input: string) => `<b>${input}</b>`;
-
-        if (this.type === LogLevel.Debug) {
-            return `<p class="debug-log">${LogRecord.timestampMessage(`[DEBUG] ${this.message}`, new Date(this.date), boldify)}</p>`;
-        } else if (this.type === LogLevel.Warning) {
-            return `<p class="warning-log">${LogRecord.timestampMessage(`[WARN ] ${this.message}`, new Date(this.date), boldify)}</p>`;
-        } else if (this.type === LogLevel.Error) {
-            return `<p class="error-log">${LogRecord.timestampMessage(`[ERROR] ${this.message}`, new Date(this.date), boldify)}</p>`;
-        } else {
-            return `<p class="trace-log">${LogRecord.timestampMessage(`[TRACE] ${this.message}`, new Date(this.date), boldify)}</p>`;
-        }
+        const boldify = (input: string) => `<b>${input}</b>`;
+        const levelInfo: Record<LogLevel, { css: string; prefix: string }> = {
+            [LogLevel.Debug]:   { css: "debug-log",   prefix: "[DEBUG]" },
+            [LogLevel.Warning]: { css: "warning-log", prefix: "[WARN ]" },
+            [LogLevel.Error]:   { css: "error-log",   prefix: "[ERROR]" },
+            [LogLevel.Trace]:   { css: "trace-log",   prefix: "[TRACE]" },
+            [LogLevel.None]:    { css: "trace-log",   prefix: "[TRACE]" },
+            [LogLevel.All]:     { css: "trace-log",   prefix: "[TRACE]" },
+        };
+        const { css, prefix } = levelInfo[this.type] ?? levelInfo[LogLevel.Trace];
+        return `<p class="${css}">${LogRecord.timestampMessage(`${prefix} ${this.message}`, new Date(this.date), boldify)}</p>`;
     }
 
     public static timestampMessage(message: string, date?: Date, timestampFormatter?: (timestamp: string) => string): string {
