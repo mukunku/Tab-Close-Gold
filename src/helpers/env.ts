@@ -27,7 +27,7 @@ export class Environment {
     }
 
     public static isFirefox(): boolean {
-        return !browser.storage.local.hasOwnProperty("QUOTA_BYTES"); //QUOTA_BYTES is undefined in Firefox
+        return !Object.prototype.hasOwnProperty.call(browser.storage.local, "QUOTA_BYTES"); //QUOTA_BYTES is undefined in Firefox
     }
 
     public static prefersDarkMode(): boolean {
