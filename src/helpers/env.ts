@@ -7,7 +7,7 @@ export enum RuntimeEnvironment {
 }
 
 export class Environment {
-    public static getEnvironment(): RuntimeEnvironment {
+    private static getEnvironment(): RuntimeEnvironment {
         const webpackEnvironment: string = process.env.NODE_ENV || "";
         if (webpackEnvironment === "development") {
             return RuntimeEnvironment.Development;
@@ -27,7 +27,7 @@ export class Environment {
     }
 
     public static isFirefox(): boolean {
-        return !browser.storage.local.QUOTA_BYTES; //QUOTA_BYTES is not defined in FF
+        return !browser.storage.local.hasOwnProperty("QUOTA_BYTES"); //QUOTA_BYTES is undefined in Firefox
     }
 
     public static prefersDarkMode(): boolean {

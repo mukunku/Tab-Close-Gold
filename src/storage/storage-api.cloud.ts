@@ -7,7 +7,7 @@ import { ChromeStorageType } from "./chrome-storage-types";
 
 export class CloudStorageApi extends StorageApi {
 	//Firefox doesn't have the MAX_ITEMS constant so we need to hard code 512 :(
-    public static readonly MAX_PARTITION_COUNT: number = (browser.storage.sync.MAX_ITEMS || 512) - 10; //-10 is to reserve some item capacity for settings.
+    public static readonly MAX_PARTITION_COUNT: number = ((browser.storage.sync as any).MAX_ITEMS || 512) - 10; //-10 is to reserve some item capacity for settings.
 
 	public storageType = ChromeStorageType.Cloud;
 
@@ -24,7 +24,7 @@ export class CloudStorageApi extends StorageApi {
 	public async getStorageUsage(): Promise<StorageUsage> {
         let bytesUsed = await browser.storage.sync.getBytesInUse(null); //null = get all usage
         return new StorageUsage(bytesUsed, //Firefox doesn't have the QUOTA_BYTES_PER_ITEM constant so we need to hard code 8192 :(
-			(browser.storage.sync.QUOTA_BYTES_PER_ITEM || 8192) * CloudStorageApi.MAX_PARTITION_COUNT);
+			((browser.storage.sync as any).QUOTA_BYTES_PER_ITEM || 8192) * CloudStorageApi.MAX_PARTITION_COUNT);
     }
 
     private generatePartitionedOptionsForCloudStorage(data: UrlPattern[]): any {
