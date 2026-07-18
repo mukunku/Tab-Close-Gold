@@ -171,7 +171,8 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 			Logger.logError(`No tab url or title was inspected. This should not normally happen`);
 		}
 	} catch (error: any) {
-		Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${error.message}`);
+		const errorMessage = error?.message || "";
+		Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${errorMessage}`);
 	}
 }
 
@@ -194,7 +195,8 @@ async function attemptTabClose(
 		if (IsTabDoesNotExistError(error)) {
 			Logger.logTrace(`Tab ${tabId} was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}'`);
 		} else {
-			Logger.logError(`Something went wrong while closing tab ${tabId} for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}': ${error.message}`);
+			const errorMessage = error?.message || "";
+			Logger.logError(`Something went wrong while closing tab ${tabId} for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}': ${errorMessage}`);
 		}
 	} finally {
 		if (wasClosed) {
