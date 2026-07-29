@@ -146,34 +146,16 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 				Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Scheduling tab to be closed in ${timeout}ms`);
 
 				setTimeout(async () => {
-					let wasClosed = false;
-					try {
-						wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
-						if (wasClosed) {
-							saveHit();
-						}
-					} finally {
-						if (wasClosed) {
-							Logger.logDebug(`Scheduled tab closing for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
-						} else {
-							Logger.logDebug(`Scheduled tab was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`);
-						}
-					}
+					await attemptTabClose(
+						tabId!, periodicSettingSyncer.dontCloseLastTab, matchedBy, matchedPattern, pattern, saveHit,
+						`Scheduled tab closing for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}' after ${timeout}ms`
+					);
 				}, timeout);
 			} else { // close the tab immediately
-				let wasClosed = false;
-				try {
-					wasClosed = await closeTheTab(tabId!, periodicSettingSyncer.dontCloseLastTab);
-					if (wasClosed) {
-						saveHit();
-					}
-				} finally {
-					if (wasClosed) {
-						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Tab has been closed.`);
-					} else {
-						Logger.logDebug(`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. But the tab was already closed.`);
-					}
-				}
+				await attemptTabClose(
+					tabId!, periodicSettingSyncer.dontCloseLastTab, matchedBy, matchedPattern, pattern, saveHit,
+					`${matchedBy} '${matchedPattern}' matched pattern '${pattern}'. Tab has been closed.`
+				);
 			}
 
 			return; //we're done! 
@@ -190,14 +172,44 @@ async function inspectUrl(tab: browser.Tabs.Tab, changeInfo: browser.Tabs.OnUpda
 		}
 	} catch (error: any) {
 		const errorMessage = error?.message || "";
+		Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${errorMessage}`);
+	}
+}
 
-		//Tab might not exist if it matched by both Url and Title since one will be faster to close the tab before the other
-		if (!errorMessage.startsWith("No tab with id:") /*Chrome*/ && !errorMessage.startsWith("Invalid tab ID:") /*Firefox*/) {
-			Logger.logError(`Something went wrong while processing url '${tabUrl}' with title '${tabTitle}': ${error.message}`);
+async function attemptTabClose(
+	tabId: number,
+	dontCloseLastTab: boolean,
+	matchedBy: string,
+	matchedPattern: string,
+	pattern: string,
+	saveHit: () => void,
+	successMessage: string
+): Promise<void> {
+	let wasClosed = false;
+	try {
+		wasClosed = await closeTheTab(tabId, dontCloseLastTab);
+		if (wasClosed) {
+			saveHit();
+		}
+	} catch (error: any) {
+		if (IsTabDoesNotExistError(error)) {
+			Logger.logTrace(`Tab ${tabId} was already closed for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}'`);
 		} else {
-			Logger.logTrace(`Tab with url '${tabUrl}' and title '${tabTitle}' was already closed`)
+			const errorMessage = error?.message || "";
+			Logger.logError(`Something went wrong while closing tab ${tabId} for ${matchedBy} '${matchedPattern}' that matched pattern '${pattern}': ${errorMessage}`);
+		}
+	} finally {
+		if (wasClosed) {
+			Logger.logDebug(successMessage);
 		}
 	}
+}
+
+//Distinguishes "tab was already closed by another call" (expected, benign) from real failures
+// E.g. Tab might not exist if it matched by both Url and Title since one will be faster to close the tab before the other
+function IsTabDoesNotExistError(error: any): boolean {
+	const errorMessage = error?.message || "";
+	return errorMessage.startsWith("No tab with id:") /*Chrome*/ || errorMessage.startsWith("Invalid tab ID:") /*Firefox*/;
 }
 
 async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<boolean> {
@@ -205,27 +217,31 @@ async function closeTheTab(tabId: number, dontCloseLastTab: boolean): Promise<bo
 	//we now allow matching by title and url so if both match that counts as two hits without locking.
 	const release = await (await acquireTabLock(tabId)).acquire();
 	try {
-		//check if this is the only tab
 		const tabsPromise = browser.tabs.query({ windowType: 'normal' });
 
-		if (dontCloseLastTab && (await tabsPromise).length === 1) {
-			//lets open a blank tab before closing the last one
-			await browser.tabs.create({ url: "about:blank" });
+		if (dontCloseLastTab) {
+			const tabs = await tabsPromise;
+
+			//tab may have already been closed by an earlier/concurrent scheduled or immediate close
+			if (!tabs.some(tab => tab.id === tabId)) {
+				Logger.logTrace(`Tab ${tabId} not found`);
+				return false;
+			}
+
+			if (tabs.length === 1) {
+				Logger.logTrace(`Tab ${tabId} is the only tab open. Creating a blank tab before closing it.`);
+
+				//lets open a blank tab before closing the last one
+				await browser.tabs.create({ url: "about:blank" });
+			}
 		}
 
 		//close first, ask questions later
 		Logger.logTrace(`Closing tab ${tabId}`);
 		await browser.tabs.remove(tabId);
 
-		//confirm we actually had a tab with that id to begin with (i.e. wasn't closed already). Not sure if this is needed or not.
-		if ((await tabsPromise).filter(tab => tab.id === tabId).length > 0) {
-			Logger.logTrace(`Tab ${tabId} closed successfully`);
-			return true;
-		} else {
-			//tab doesn't exist anymore. probably already closed by another rule
-			Logger.logTrace(`Tab ${tabId} not found`);
-			return false;
-		}
+		Logger.logTrace(`Tab ${tabId} closed successfully`);
+		return true;
 	} finally {
 		release();
 	}
@@ -266,7 +282,7 @@ browser.storage.onChanged.addListener(async (changes, namespace) => {
 			} else if (key === StorageApi.DONT_CLOSE_LAST_TAB_KEY) {
 				const logger = await Logger.getInstance();
 				let periodicSettingSyncer = await PeriodicSettingSyncer.getInstance(logger);
-				periodicSettingSyncer.dontCloseLastTab = newValue;
+				periodicSettingSyncer.dontCloseLastTab = newValue as boolean;
 			}
 
 			if (key?.startsWith("config-")) {

@@ -15,7 +15,7 @@ export class Logger {
     private static mutex: Mutex = new Mutex();
     private storage: LocalStorageApi;
     private queue: Queue<LogRecord>;
-    private intervalId: NodeJS.Timeout;
+    private intervalId: ReturnType<typeof setInterval>;
     private syncFailureCount: number = 0;
     public minLogLevel: LogLevel;
     public readonly readonly: boolean = false;
@@ -23,7 +23,7 @@ export class Logger {
     private constructor(readonly: boolean) {
         this.readonly = readonly;
         this.queue = new Queue<LogRecord>();
-        this.intervalId = 0 as unknown as NodeJS.Timeout
+        this.intervalId = 0 as unknown as ReturnType<typeof setInterval>
         this.storage = new LocalStorageApi();
 
         if (readonly) {

@@ -4,3 +4,8 @@ declare function confirm(message: string): boolean;
 declare var location: any;
 declare var window: any;
 declare var document: any;
+declare var process: {
+	env: {
+		NODE_ENV?: string;
+	};
+};

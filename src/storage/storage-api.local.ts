@@ -23,7 +23,7 @@ export class LocalStorageApi extends StorageApi {
         if (browser.storage.local.QUOTA_BYTES && browser.storage.local.getBytesInUse) { //Chrome
             //@ts-ignore
             let bytesUsed = await browser.storage.local.getBytesInUse(null); //null = get all usage
-            return new StorageUsage(bytesUsed, browser.storage.local.QUOTA_BYTES);
+            return new StorageUsage(bytesUsed, (browser.storage.local as any).QUOTA_BYTES);
         } else { //Firefox
             //Firefox doesn't define a QUOTA_BYTES constant. Nor a getBytesInUse() function.
             //So we'll need to calculate it ourselves. This isn't exact but it's close.

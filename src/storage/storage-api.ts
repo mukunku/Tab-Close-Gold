@@ -154,7 +154,7 @@ export abstract class StorageApi {
         for (var properyName in rawConfigs) {
             if (Object.prototype.hasOwnProperty.call(rawConfigs, properyName)) {
                 if (properyName.startsWith("config-")) {
-                    rawConfigs[properyName] = LZString.decompressFromUTF16(rawConfigs[properyName]);
+                    rawConfigs[properyName] = LZString.decompressFromUTF16((rawConfigs as any)[properyName]);
                 }
             }
         }
